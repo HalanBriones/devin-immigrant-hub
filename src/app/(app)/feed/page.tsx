@@ -29,7 +29,7 @@ export default async function FeedPage() {
         <ReputationBadge score={profile?.reputationScore ?? 0} />
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <section className="card p-5">
         <h2 className="text-sm font-semibold text-slate-900">Get set up</h2>
         <ul className="mt-3 flex flex-col gap-2">
           {steps.map((step) => (

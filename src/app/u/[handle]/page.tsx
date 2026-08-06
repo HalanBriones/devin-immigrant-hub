@@ -35,7 +35,7 @@ export default async function PublicProfilePage({
         ← Immigrant Community Hub
       </Link>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6">
+      <section className="card flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

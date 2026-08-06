@@ -12,7 +12,7 @@ export default async function VerifyEmailPage({
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-5 px-6">
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="card flex flex-col gap-4">
         <h1 className="text-xl font-semibold">Email verification</h1>
         {verified ? (
           <Alert tone="success">
