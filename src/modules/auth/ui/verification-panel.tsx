@@ -19,7 +19,7 @@ function EmailSection({ email, verified }: { email: string; verified: boolean })
   );
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5">
+    <section className="card flex flex-col gap-3 p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Email</h2>
@@ -43,7 +43,7 @@ function PhoneSection({ phone, verified }: { phone: string | null; verified: boo
   const [confirmState, confirmAction] = useActionState(confirmPhoneVerificationAction, {});
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5">
+    <section className="card flex flex-col gap-3 p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Phone number</h2>
