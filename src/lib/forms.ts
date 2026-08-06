@@ -4,6 +4,7 @@ export type ActionState = {
   error?: string;
   fieldErrors?: Record<string, string>;
   success?: string;
+  values?: Record<string, string>;
 };
 
 export function fieldErrorsOf(error: z.ZodError): Record<string, string> {

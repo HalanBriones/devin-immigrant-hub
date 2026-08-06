@@ -13,10 +13,23 @@ export function RegisterForm() {
     <form action={formAction} className="flex flex-col gap-4">
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       <Field label="Display name" htmlFor="displayName" error={state.fieldErrors?.displayName}>
-        <input id="displayName" name="displayName" className={inputClass} autoComplete="name" />
+        <input
+          id="displayName"
+          name="displayName"
+          defaultValue={state.values?.displayName ?? ""}
+          className={inputClass}
+          autoComplete="name"
+        />
       </Field>
       <Field label="Email" htmlFor="email" error={state.fieldErrors?.email}>
-        <input id="email" name="email" type="email" className={inputClass} autoComplete="email" />
+        <input
+          id="email"
+          name="email"
+          type="email"
+          defaultValue={state.values?.email ?? ""}
+          className={inputClass}
+          autoComplete="email"
+        />
       </Field>
       <Field
         label="Password"

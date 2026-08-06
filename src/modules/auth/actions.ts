@@ -53,13 +53,17 @@ export async function registerAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const submitted = {
+    email: String(formData.get("email") ?? ""),
+    displayName: String(formData.get("displayName") ?? ""),
+  };
   const parsed = registerSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
     displayName: formData.get("displayName"),
   });
   if (!parsed.success) {
-    return { fieldErrors: fieldErrorsOf(parsed.error) };
+    return { fieldErrors: fieldErrorsOf(parsed.error), values: submitted };
   }
 
   const { email, password, displayName } = parsed.data;
@@ -69,7 +73,10 @@ export async function registerAction(
     .where(eq(users.email, email))
     .limit(1);
   if (existing) {
-    return { fieldErrors: { email: "An account with this email already exists" } };
+    return {
+      fieldErrors: { email: "An account with this email already exists" },
+      values: submitted,
+    };
   }
 
   const handle = await generateUniqueHandle(displayName);
