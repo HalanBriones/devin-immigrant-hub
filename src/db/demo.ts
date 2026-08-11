@@ -53,6 +53,39 @@ const DEMO_USERS = [
     occupation: "Settlement worker",
     reputation: 30,
   },
+  {
+    email: "amina@immigranthub.ca",
+    handle: "amina-hassan",
+    displayName: "Amina Hassan",
+    bio: "Arrived in Calgary from Nigeria with two kids. School and benefits questions welcome.",
+    countryOfOrigin: "NG",
+    provinceCode: "AB",
+    cityName: "Calgary",
+    occupation: "Accountant",
+    reputation: 27,
+  },
+  {
+    email: "wei@immigranthub.ca",
+    handle: "wei-zhang",
+    displayName: "Wei Zhang",
+    bio: "Study permit to PR in Winnipeg. I track immigration paperwork obsessively.",
+    countryOfOrigin: "CN",
+    provinceCode: "MB",
+    cityName: "Winnipeg",
+    occupation: "Data analyst",
+    reputation: 33,
+  },
+  {
+    email: "olena@immigranthub.ca",
+    handle: "olena-kovalenko",
+    displayName: "Olena Kovalenko",
+    bio: "Came to Ottawa under CUAET. Sharing what worked for housing and French classes.",
+    countryOfOrigin: "UA",
+    provinceCode: "ON",
+    cityName: "Ottawa",
+    occupation: "Graphic designer",
+    reputation: 21,
+  },
 ];
 
 const DEMO_POSTS = [
@@ -80,6 +113,90 @@ const DEMO_POSTS = [
     title: "Winter gear: what to buy and what to skip",
     body: "Buy: a parka rated to -30, real winter boots, merino base layers.\nSkip: expensive brands. End-of-season sales in March are 50-70% off.",
   },
+  {
+    author: "wei-zhang",
+    community: "immigration-status",
+    title: "Study permit to PR: the timeline that actually happened",
+    body: "Graduated in April, PGWP approved in 7 weeks, Express Entry profile the same month.\nITA came 11 months later once I had one year of skilled work. Keep every pay stub and a signed reference letter with hours per week — that is what IRCC asked for.",
+  },
+  {
+    author: "amina-hassan",
+    community: "schools-families",
+    title: "Registering kids in school mid-year in Alberta",
+    body: "You do not need a permanent address to register, a lease or utility bill for the area is enough.\nBring passports, permits, immunization records and any school reports (translated is fine). Ask about the free EAL assessment — it took a week for us.",
+  },
+  {
+    author: "amina-hassan",
+    community: "calgary-newcomers",
+    title: "Cheapest ways to get around Calgary in your first month",
+    body: "The low-income monthly transit pass is means tested and was $5.60/month for us in the first year. Apply at a Calgary Transit customer service centre with your notice of assessment or permit.",
+  },
+  {
+    author: "olena-kovalenko",
+    community: "ottawa-newcomers",
+    title: "Free French classes in Ottawa that accept newcomers fast",
+    body: "CLIC/LINC classes through settlement agencies had a 2-3 month waitlist for me, but the community centre conversation circles started the same week and were free.",
+  },
+  {
+    author: "olena-kovalenko",
+    community: "ukrainians-in-canada",
+    title: "CUAET arrivals: what helped us in the first 30 days",
+    body: "Open work permit at the airport, then SIN the same day at Service Canada.\nThe temporary hotel program filled fast — the local Ukrainian church network found us a host family in four days.",
+  },
+  {
+    author: "wei-zhang",
+    community: "winnipeg-newcomers",
+    title: "Winnipeg rent reality check (2026)",
+    body: "A one bedroom near downtown ran us $1,100-1,300 including heat. Ask explicitly whether hydro is included — that is another $80-150 in winter.",
+  },
+  {
+    author: "priya-nair",
+    community: "toronto-newcomers",
+    title: "Toronto: neighbourhoods that worked for a car-free family",
+    body: "We looked only along subway lines and it was worth the extra rent. East York and Danforth gave us the best price per minute of commute.",
+  },
+  {
+    author: "marc-dubois",
+    community: "quebec-newcomers",
+    title: "Francisation and RAMQ: two things to start on day one",
+    body: "RAMQ has a three month waiting period for most, so buy private coverage for that window.\nFrancisation is free and pays a small allowance if you attend full time.",
+  },
+  {
+    author: "amina-hassan",
+    community: "nigerians-in-canada",
+    title: "Sending money home without losing 8% to fees",
+    body: "Bank wires cost us the most. Comparison sites plus a mid-market rate transfer service cut the total cost to around 1%. Always compare the rate, not just the flat fee.",
+  },
+  {
+    author: "demo-newcomer",
+    community: "vancouver-newcomers",
+    title: "Landed in Vancouver last month — what surprised me",
+    body: "Rent is the obvious one, but the hidden cost was furniture. Buy Nothing groups and the local Facebook marketplace furnished our whole apartment for under $400.",
+  },
+  {
+    author: "priya-nair",
+    community: "newcomer-basics",
+    title: "Building credit from zero in six months",
+    body: "A secured credit card with a $500 deposit, one small recurring bill on it, paid in full automatically. My score was usable for a lease by month six.",
+  },
+  {
+    author: "wei-zhang",
+    community: "jobs-credentials",
+    title: "Canadian-style resume changes that got me interviews",
+    body: "Cut it to two pages, dropped photo/age/marital status, and rewrote bullets as impact + number.\nThe biggest single change: a short summary line naming the exact job title I was applying for.",
+  },
+  {
+    author: "olena-kovalenko",
+    community: "housing-rentals",
+    title: "Red flags I learned to spot in rental listings",
+    body: "No viewing allowed, deposit by e-transfer before signing, and a landlord who is always abroad. Anything asking for money before you see the unit and the lease is a scam.",
+  },
+  {
+    author: "marc-dubois",
+    community: "winter-daily-life",
+    title: "Groceries: how we cut our bill by a third",
+    body: "Flyer apps for price matching, ethnic grocers for produce and spices, and warehouse clubs only for things you actually store. Buying seasonal made the biggest difference.",
+  },
 ];
 
 const DEMO_COMMENTS = [
@@ -92,6 +209,31 @@ const DEMO_COMMENTS = [
     author: "priya-nair",
     postTitle: "First-week checklist that actually worked for me",
     body: "Adding one: register for the GST/HST credit when you file taxes, a lot of newcomers miss it.",
+  },
+  {
+    author: "wei-zhang",
+    postTitle: "Renting without Canadian credit history",
+    body: "A guarantor letter from my employer also worked, worth asking HR — mine had a template ready.",
+  },
+  {
+    author: "olena-kovalenko",
+    postTitle: "Canadian-style resume changes that got me interviews",
+    body: "Same experience here. Naming the exact job title in the summary doubled my callback rate.",
+  },
+  {
+    author: "amina-hassan",
+    postTitle: "Building credit from zero in six months",
+    body: "Which bank did you use? Two of ours wanted a deposit larger than $500.",
+  },
+  {
+    author: "demo-newcomer",
+    postTitle: "Study permit to PR: the timeline that actually happened",
+    body: "Thank you for the detail on reference letters — I would not have thought to ask for hours per week.",
+  },
+  {
+    author: "marc-dubois",
+    postTitle: "Red flags I learned to spot in rental listings",
+    body: "Adding one: if the lease is not the standard provincial form, read every clause twice.",
   },
 ];
 
