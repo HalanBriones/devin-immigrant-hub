@@ -152,6 +152,16 @@ export async function listFeedPosts(viewerId: string): Promise<PostSummary[]> {
     .limit(30);
 }
 
+export async function listPublicPosts(viewerId: string | null): Promise<PostSummary[]> {
+  return db
+    .select(postSelection(viewerId))
+    .from(posts)
+    .innerJoin(profiles, eq(profiles.userId, posts.authorId))
+    .innerJoin(communities, eq(communities.id, posts.communityId))
+    .orderBy(desc(posts.createdAt))
+    .limit(30);
+}
+
 export async function getPost(id: number, viewerId: string | null): Promise<PostSummary | null> {
   const [row] = await db
     .select(postSelection(viewerId))

@@ -1,17 +1,18 @@
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getCommunityBySlug, listCommunityPosts } from "@/modules/communities/queries";
 import { MembershipButton } from "@/modules/communities/ui/community-card";
 import { PostCard } from "@/modules/communities/ui/post-card";
 import { PostComposer } from "@/modules/communities/ui/post-composer";
+import { SignUpPrompt } from "@/modules/communities/ui/sign-up-prompt";
 
 export default async function CommunityPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const user = await requireUser();
-  const community = await getCommunityBySlug(slug, user.id);
+  const user = await getCurrentUser();
+  const community = await getCommunityBySlug(slug, user?.id ?? null);
   if (!community) notFound();
 
-  const posts = await listCommunityPosts(community.id, user.id);
+  const posts = await listCommunityPosts(community.id, user?.id ?? null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -27,10 +28,16 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
             {community.memberCount} members · {community.postCount} posts
           </p>
         </div>
-        <MembershipButton communityId={community.id} joined={community.joined} />
+        <MembershipButton
+          communityId={community.id}
+          joined={community.joined}
+          signedIn={Boolean(user)}
+        />
       </header>
 
-      {community.joined ? (
+      {!user ? (
+        <SignUpPrompt action="join this community and post" />
+      ) : community.joined ? (
         <PostComposer communityId={community.id} />
       ) : (
         <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">
@@ -42,7 +49,14 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
         {posts.length === 0 ? (
           <p className="text-sm text-slate-500">No posts yet — be the first to share something.</p>
         ) : (
-          posts.map((post) => <PostCard key={post.id} post={post} showCommunity={false} />)
+          posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              signedIn={Boolean(user)}
+              showCommunity={false}
+            />
+          ))
         )}
       </section>
     </div>

@@ -1,11 +1,12 @@
-import { requireUser } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
 import { listCommunities } from "@/modules/communities/queries";
 import { CommunityCard } from "@/modules/communities/ui/community-card";
 import { CreateCommunityForm } from "@/modules/communities/ui/create-community-form";
+import { SignUpPrompt } from "@/modules/communities/ui/sign-up-prompt";
 
 export default async function CommunitiesPage() {
-  const user = await requireUser();
-  const communities = await listCommunities(user.id);
+  const user = await getCurrentUser();
+  const communities = await listCommunities(user?.id ?? null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -19,11 +20,11 @@ export default async function CommunitiesPage() {
 
       <section className="grid gap-4 sm:grid-cols-2">
         {communities.map((community) => (
-          <CommunityCard key={community.id} community={community} />
+          <CommunityCard key={community.id} community={community} signedIn={Boolean(user)} />
         ))}
       </section>
 
-      <CreateCommunityForm />
+      {user ? <CreateCommunityForm /> : <SignUpPrompt action="join or start a community" />}
     </div>
   );
 }

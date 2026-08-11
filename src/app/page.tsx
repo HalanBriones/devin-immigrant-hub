@@ -54,6 +54,12 @@ export default async function HomePage() {
               >
                 Sign in
               </Link>
+              <Link
+                href="/feed"
+                className="rounded-lg px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:text-sky-700"
+              >
+                Browse discussions
+              </Link>
             </>
           )}
         </div>
