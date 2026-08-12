@@ -1,12 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/upload-limits";
 
 export function ImagePicker({ max }: { max: number }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [names, setNames] = useState<string[]>([]);
   const [tooMany, setTooMany] = useState(false);
+  const { pending } = useFormStatus();
+
+  // React resets the file input once the action settles, so drop the filenames with it.
+  useEffect(() => {
+    if (!pending) return;
+    return () => {
+      setNames([]);
+      setTooMany(false);
+    };
+  }, [pending]);
 
   function onChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
