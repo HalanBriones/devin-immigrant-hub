@@ -2,12 +2,20 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCommunityBySlug, listCommunityPosts } from "@/modules/communities/queries";
 import { MembershipButton } from "@/modules/communities/ui/community-card";
+import { InviteShare } from "@/modules/communities/ui/invite-share";
 import { PostCard } from "@/modules/communities/ui/post-card";
 import { PostComposer } from "@/modules/communities/ui/post-composer";
 import { SignUpPrompt } from "@/modules/communities/ui/sign-up-prompt";
 
-export default async function CommunityPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CommunityPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ invite?: string }>;
+}) {
   const { slug } = await params;
+  const { invite } = await searchParams;
   const user = await getCurrentUser();
   const community = await getCommunityBySlug(slug, user?.id ?? null);
   if (!community) notFound();
@@ -35,6 +43,13 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
         />
       </header>
 
+      {invite && !community.joined ? (
+        <p className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+          You were invited to {community.name}.{" "}
+          {user ? "Join to post, comment and see it in your feed." : "Create a free account to join in."}
+        </p>
+      ) : null}
+
       {!user ? (
         <SignUpPrompt action="join this community and post" />
       ) : community.joined ? (
@@ -44,6 +59,8 @@ export default async function CommunityPage({ params }: { params: Promise<{ slug
           Join this community to post and comment.
         </p>
       )}
+
+      <InviteShare slug={community.slug} communityName={community.name} />
 
       <section className="flex flex-col gap-4">
         {posts.length === 0 ? (
