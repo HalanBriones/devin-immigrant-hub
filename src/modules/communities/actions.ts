@@ -7,12 +7,15 @@ import { z } from "zod";
 import { db } from "@/db/client";
 import { requireUser } from "@/lib/auth/session";
 import { fieldErrorsOf, type ActionState } from "@/lib/forms";
+import { MAX_COMMENT_IMAGES, MAX_POST_IMAGES } from "@/lib/upload-limits";
+import { saveImages } from "@/lib/uploads";
 import {
   COMMENT_REPUTATION,
   POST_UPVOTE_REPUTATION,
 } from "@/modules/communities/reputation";
 import { awardReputation } from "@/modules/profiles/reputation";
 import {
+  attachments,
   comments,
   communities,
   communityMembers,
@@ -20,9 +23,19 @@ import {
   posts,
 } from "@/modules/communities/schema";
 
+function imageFiles(formData: FormData): File[] {
+  return formData
+    .getAll("images")
+    .filter((entry): entry is File => entry instanceof File);
+}
+
 const postSchema = z.object({
   communityId: z.coerce.number().int().positive(),
-  title: z.string().trim().min(5, "Title must be at least 5 characters").max(140),
+  title: z
+    .string()
+    .trim()
+    .min(5, "Title must be at least 5 characters")
+    .max(140),
   body: z.string().trim().min(10, "Write at least 10 characters").max(5000),
 });
 
@@ -79,7 +92,10 @@ export async function leaveCommunityAction(formData: FormData): Promise<void> {
     const deleted = await tx
       .delete(communityMembers)
       .where(
-        and(eq(communityMembers.communityId, communityId), eq(communityMembers.userId, user.id)),
+        and(
+          eq(communityMembers.communityId, communityId),
+          eq(communityMembers.userId, user.id),
+        ),
       )
       .returning({ userId: communityMembers.userId });
     if (deleted.length > 0) {
@@ -113,7 +129,11 @@ export async function createCommunityAction(
   }
 
   const slug = slugify(parsed.data.name);
-  if (!slug) return { fieldErrors: { name: "Use at least a few letters or numbers" }, values };
+  if (!slug)
+    return {
+      fieldErrors: { name: "Use at least a few letters or numbers" },
+      values,
+    };
 
   const [existing] = await db
     .select({ id: communities.id })
@@ -121,7 +141,10 @@ export async function createCommunityAction(
     .where(eq(communities.slug, slug))
     .limit(1);
   if (existing) {
-    return { fieldErrors: { name: "A community with a similar name already exists" }, values };
+    return {
+      fieldErrors: { name: "A community with a similar name already exists" },
+      values,
+    };
   }
 
   await db.transaction(async (tx) => {
@@ -138,7 +161,11 @@ export async function createCommunityAction(
       .returning({ id: communities.id });
     await tx
       .insert(communityMembers)
-      .values({ communityId: community.id, userId: user.id, role: "moderator" });
+      .values({
+        communityId: community.id,
+        userId: user.id,
+        role: "moderator",
+      });
   });
 
   revalidatePath("/communities");
@@ -167,7 +194,12 @@ export async function createPostAction(
   const [membership] = await db
     .select({ userId: communityMembers.userId })
     .from(communityMembers)
-    .where(and(eq(communityMembers.communityId, communityId), eq(communityMembers.userId, user.id)))
+    .where(
+      and(
+        eq(communityMembers.communityId, communityId),
+        eq(communityMembers.userId, user.id),
+      ),
+    )
     .limit(1);
   if (!membership) {
     return { error: "Join this community before posting", values };
@@ -180,8 +212,19 @@ export async function createPostAction(
     .limit(1);
   if (!community) return { error: "Community not found", values };
 
+  const uploads = await saveImages(imageFiles(formData), MAX_POST_IMAGES);
+  if ("error" in uploads) return { error: uploads.error, values };
+
   await db.transaction(async (tx) => {
-    await tx.insert(posts).values({ communityId, authorId: user.id, title, body });
+    const [post] = await tx
+      .insert(posts)
+      .values({ communityId, authorId: user.id, title, body })
+      .returning({ id: posts.id });
+    if (uploads.images.length > 0) {
+      await tx
+        .insert(attachments)
+        .values(uploads.images.map((image) => ({ ...image, postId: post.id })));
+    }
     await tx
       .update(communities)
       .set({ postCount: sql`${communities.postCount} + 1` })
@@ -190,6 +233,7 @@ export async function createPostAction(
 
   revalidatePath(`/c/${community.slug}`);
   revalidatePath("/feed");
+  revalidatePath("/");
   return { success: "Post published" };
 }
 
@@ -215,11 +259,21 @@ export async function createCommentAction(
     .limit(1);
   if (!post) return { error: "This post no longer exists", values };
 
+  const uploads = await saveImages(imageFiles(formData), MAX_COMMENT_IMAGES);
+  if ("error" in uploads) return { error: uploads.error, values };
+
   const commentId = await db.transaction(async (tx) => {
     const [comment] = await tx
       .insert(comments)
       .values({ postId, authorId: user.id, body })
       .returning({ id: comments.id });
+    if (uploads.images.length > 0) {
+      await tx
+        .insert(attachments)
+        .values(
+          uploads.images.map((image) => ({ ...image, commentId: comment.id })),
+        );
+    }
     await tx
       .update(posts)
       .set({ commentCount: sql`${posts.commentCount} + 1` })

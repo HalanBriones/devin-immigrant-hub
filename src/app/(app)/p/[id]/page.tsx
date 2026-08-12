@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPost, isMember, listComments } from "@/modules/communities/queries";
 import { getCommunityBySlug } from "@/modules/communities/queries";
+import { AttachmentGallery } from "@/modules/communities/ui/attachment-gallery";
 import { CommentForm } from "@/modules/communities/ui/comment-form";
 import { VoteButton } from "@/modules/communities/ui/post-card";
 import { SignUpPrompt } from "@/modules/communities/ui/sign-up-prompt";
@@ -45,6 +46,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">{post.title}</h1>
           <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{post.body}</p>
+          <AttachmentGallery images={post.images} alt={`Photo attached to ${post.title}`} />
         </div>
       </article>
 
@@ -63,6 +65,12 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
               <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-700">
                 {comment.body}
               </p>
+              <div className="mt-2">
+                <AttachmentGallery
+                  images={comment.images}
+                  alt={`Photo attached by ${comment.authorName}`}
+                />
+              </div>
             </li>
           ))}
         </ul>

@@ -4,7 +4,9 @@ import { useActionState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { MAX_POST_IMAGES } from "@/lib/upload-limits";
 import { createPostAction } from "@/modules/communities/actions";
+import { ImagePicker } from "@/modules/communities/ui/image-picker";
 
 export function PostComposer({ communityId }: { communityId: number }) {
   const [state, formAction] = useActionState(createPostAction, {});
@@ -33,6 +35,7 @@ export function PostComposer({ communityId }: { communityId: number }) {
           defaultValue={state.success ? "" : (state.values?.body ?? "")}
         />
       </Field>
+      <ImagePicker max={MAX_POST_IMAGES} />
       <div>
         <SubmitButton label="Publish post" />
       </div>

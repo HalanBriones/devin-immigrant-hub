@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { togglePostVoteAction } from "@/modules/communities/actions";
 import type { PostSummary } from "@/modules/communities/queries";
+import { AttachmentGallery } from "@/modules/communities/ui/attachment-gallery";
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", { dateStyle: "medium" }).format(date);
@@ -92,6 +93,7 @@ export function PostCard({
         <p className="line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-slate-600">
           {post.body}
         </p>
+        <AttachmentGallery images={post.images} alt={`Photo attached to ${post.title}`} />
         <Link href={`/p/${post.id}`} className="text-xs font-medium text-slate-500 hover:text-sky-700">
           {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
         </Link>

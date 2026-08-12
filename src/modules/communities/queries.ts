@@ -1,8 +1,10 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
+import { imageUrl } from "@/lib/uploads";
 import { cities, provinces } from "@/modules/geo/schema";
 import { profiles } from "@/modules/profiles/schema";
 import {
+  attachments,
   comments,
   communities,
   communityMembers,
@@ -34,7 +36,45 @@ export type PostSummary = {
   communitySlug: string;
   communityName: string;
   viewerVoted: boolean;
+  images: string[];
 };
+
+type WithId = { id: number };
+
+async function imagesByOwner(
+  ownerIds: number[],
+  owner: "post" | "comment",
+): Promise<Map<number, string[]>> {
+  const ownerColumn =
+    owner === "post" ? attachments.postId : attachments.commentId;
+  const byOwner = new Map<number, string[]>();
+  if (ownerIds.length === 0) return byOwner;
+
+  const rows = await db
+    .select({ ownerId: ownerColumn, fileName: attachments.fileName })
+    .from(attachments)
+    .where(and(inArray(ownerColumn, ownerIds), isNotNull(ownerColumn)))
+    .orderBy(attachments.id);
+
+  for (const row of rows) {
+    if (row.ownerId === null) continue;
+    const urls = byOwner.get(row.ownerId) ?? [];
+    urls.push(imageUrl(row.fileName));
+    byOwner.set(row.ownerId, urls);
+  }
+  return byOwner;
+}
+
+async function withImages<T extends WithId>(
+  rows: T[],
+  owner: "post" | "comment",
+): Promise<(T & { images: string[] })[]> {
+  const byOwner = await imagesByOwner(
+    rows.map((row) => row.id),
+    owner,
+  );
+  return rows.map((row) => ({ ...row, images: byOwner.get(row.id) ?? [] }));
+}
 
 function joinedExpr(viewerId: string | null) {
   if (!viewerId) return sql<boolean>`false`;
@@ -45,7 +85,9 @@ function joinedExpr(viewerId: string | null) {
   )`;
 }
 
-export async function listCommunities(viewerId: string | null): Promise<CommunitySummary[]> {
+export async function listCommunities(
+  viewerId: string | null,
+): Promise<CommunitySummary[]> {
   return db
     .select({
       id: communities.id,
@@ -120,7 +162,7 @@ export async function listCommunityPosts(
   communityId: number,
   viewerId: string | null,
 ): Promise<PostSummary[]> {
-  return db
+  const rows = await db
     .select(postSelection(viewerId))
     .from(posts)
     .innerJoin(profiles, eq(profiles.userId, posts.authorId))
@@ -128,6 +170,7 @@ export async function listCommunityPosts(
     .where(eq(posts.communityId, communityId))
     .orderBy(desc(posts.createdAt))
     .limit(50);
+  return withImages(rows, "post");
 }
 
 export async function listFeedPosts(viewerId: string): Promise<PostSummary[]> {
@@ -137,7 +180,7 @@ export async function listFeedPosts(viewerId: string): Promise<PostSummary[]> {
     .where(eq(communityMembers.userId, viewerId));
   if (memberships.length === 0) return [];
 
-  return db
+  const rows = await db
     .select(postSelection(viewerId))
     .from(posts)
     .innerJoin(profiles, eq(profiles.userId, posts.authorId))
@@ -150,19 +193,26 @@ export async function listFeedPosts(viewerId: string): Promise<PostSummary[]> {
     )
     .orderBy(desc(posts.createdAt))
     .limit(30);
+  return withImages(rows, "post");
 }
 
-export async function listPublicPosts(viewerId: string | null): Promise<PostSummary[]> {
-  return db
+export async function listPublicPosts(
+  viewerId: string | null,
+): Promise<PostSummary[]> {
+  const rows = await db
     .select(postSelection(viewerId))
     .from(posts)
     .innerJoin(profiles, eq(profiles.userId, posts.authorId))
     .innerJoin(communities, eq(communities.id, posts.communityId))
     .orderBy(desc(posts.createdAt))
     .limit(30);
+  return withImages(rows, "post");
 }
 
-export async function getPost(id: number, viewerId: string | null): Promise<PostSummary | null> {
+export async function getPost(
+  id: number,
+  viewerId: string | null,
+): Promise<PostSummary | null> {
   const [row] = await db
     .select(postSelection(viewerId))
     .from(posts)
@@ -170,7 +220,9 @@ export async function getPost(id: number, viewerId: string | null): Promise<Post
     .innerJoin(communities, eq(communities.id, posts.communityId))
     .where(eq(posts.id, id))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  const [withImage] = await withImages([row], "post");
+  return withImage;
 }
 
 export type CommentView = {
@@ -179,10 +231,11 @@ export type CommentView = {
   createdAt: Date;
   authorHandle: string;
   authorName: string;
+  images: string[];
 };
 
 export async function listComments(postId: number): Promise<CommentView[]> {
-  return db
+  const rows = await db
     .select({
       id: comments.id,
       body: comments.body,
@@ -194,20 +247,29 @@ export async function listComments(postId: number): Promise<CommentView[]> {
     .innerJoin(profiles, eq(profiles.userId, comments.authorId))
     .where(eq(comments.postId, postId))
     .orderBy(comments.createdAt);
+  return withImages(rows, "comment");
 }
 
-export async function isMember(communityId: number, userId: string): Promise<boolean> {
+export async function isMember(
+  communityId: number,
+  userId: string,
+): Promise<boolean> {
   const [row] = await db
     .select({ userId: communityMembers.userId })
     .from(communityMembers)
     .where(
-      and(eq(communityMembers.communityId, communityId), eq(communityMembers.userId, userId)),
+      and(
+        eq(communityMembers.communityId, communityId),
+        eq(communityMembers.userId, userId),
+      ),
     )
     .limit(1);
   return Boolean(row);
 }
 
-export async function listJoinedCommunities(userId: string): Promise<CommunitySummary[]> {
+export async function listJoinedCommunities(
+  userId: string,
+): Promise<CommunitySummary[]> {
   return db
     .select({
       id: communities.id,
