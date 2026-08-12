@@ -9,17 +9,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3">
+        <div className="mx-auto flex max-w-5xl items-center gap-x-4 px-4 py-3 sm:px-6">
           <Link
             href="/feed"
-            className="flex items-center gap-2 text-sm font-semibold tracking-tight text-slate-900"
+            className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight text-slate-900"
           >
             <span className="grid size-7 place-items-center rounded-lg bg-sky-600 text-xs font-bold text-white">
               ICH
             </span>
-            Immigrant Community Hub
+            <span className="hidden lg:inline">Immigrant Community Hub</span>
           </Link>
-          <nav className="flex flex-1 flex-wrap items-center gap-1 text-sm">
+          <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap text-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Link href="/feed" className="nav-link">
               Feed
             </Link>
@@ -36,18 +36,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </Link>
                 {user.handle ? (
                   <Link href={`/u/${user.handle}`} className="nav-link">
-                    My public page
+                    <span className="sm:hidden">Public page</span>
+                    <span className="hidden sm:inline">My public page</span>
                   </Link>
                 ) : null}
               </>
             ) : null}
           </nav>
           {user ? (
-            <form action={logoutAction}>
+            <form action={logoutAction} className="shrink-0">
               <SubmitButton label="Sign out" variant="secondary" />
             </form>
           ) : (
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex shrink-0 items-center gap-2 text-sm">
               <Link href="/login" className="nav-link">
                 Sign in
               </Link>
@@ -61,7 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           )}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl px-6 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">{children}</main>
     </div>
   );
 }
