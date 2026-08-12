@@ -24,6 +24,12 @@ export const communityKind = pgEnum("community_kind", [
   "topic",
 ]);
 export const communityRole = pgEnum("community_role", ["member", "moderator"]);
+export const postType = pgEnum("post_type", [
+  "question",
+  "info",
+  "event",
+  "service",
+]);
 
 export const communities = pgTable(
   "communities",
@@ -82,6 +88,7 @@ export const posts = pgTable(
       .references(() => profiles.userId, { onDelete: "cascade" }),
     title: text("title").notNull(),
     body: text("body").notNull(),
+    type: postType("type").notNull().default("info"),
     score: integer("score").notNull().default(0),
     commentCount: integer("comment_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -94,6 +101,7 @@ export const posts = pgTable(
   (table) => [
     index("posts_community_created_idx").on(table.communityId, table.createdAt),
     index("posts_author_idx").on(table.authorId),
+    index("posts_type_idx").on(table.type),
   ],
 );
 

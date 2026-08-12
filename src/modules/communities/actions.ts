@@ -9,6 +9,7 @@ import { requireUser } from "@/lib/auth/session";
 import { fieldErrorsOf, type ActionState } from "@/lib/forms";
 import { MAX_COMMENT_IMAGES, MAX_POST_IMAGES } from "@/lib/upload-limits";
 import { saveImages } from "@/lib/uploads";
+import { POST_TYPES } from "@/modules/communities/post-types";
 import {
   COMMENT_REPUTATION,
   POST_UPVOTE_REPUTATION,
@@ -37,6 +38,7 @@ const postSchema = z.object({
     .min(5, "Title must be at least 5 characters")
     .max(140),
   body: z.string().trim().min(10, "Write at least 10 characters").max(5000),
+  type: z.enum(POST_TYPES, { message: "Pick a post type" }),
 });
 
 const commentSchema = z.object({
@@ -180,17 +182,19 @@ export async function createPostAction(
   const values = {
     title: String(formData.get("title") ?? ""),
     body: String(formData.get("body") ?? ""),
+    type: String(formData.get("type") ?? ""),
   };
   const parsed = postSchema.safeParse({
     communityId: formData.get("communityId"),
     title: formData.get("title"),
     body: formData.get("body"),
+    type: formData.get("type"),
   });
   if (!parsed.success) {
     return { fieldErrors: fieldErrorsOf(parsed.error), values };
   }
 
-  const { communityId, title, body } = parsed.data;
+  const { communityId, title, body, type } = parsed.data;
   const [membership] = await db
     .select({ userId: communityMembers.userId })
     .from(communityMembers)
@@ -218,7 +222,7 @@ export async function createPostAction(
   await db.transaction(async (tx) => {
     const [post] = await tx
       .insert(posts)
-      .values({ communityId, authorId: user.id, title, body })
+      .values({ communityId, authorId: user.id, title, body, type })
       .returning({ id: posts.id });
     if (uploads.images.length > 0) {
       await tx

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { togglePostVoteAction } from "@/modules/communities/actions";
 import type { PostSummary } from "@/modules/communities/queries";
 import { AttachmentGallery } from "@/modules/communities/ui/attachment-gallery";
+import { PostTypeBadge } from "@/modules/communities/ui/post-type-badge";
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", { dateStyle: "medium" }).format(date);
@@ -71,6 +72,7 @@ export function PostCard({
       />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+          <PostTypeBadge type={post.type} />
           {showCommunity ? (
             <>
               <Link href={`/c/${post.communitySlug}`} className="font-medium text-sky-700">

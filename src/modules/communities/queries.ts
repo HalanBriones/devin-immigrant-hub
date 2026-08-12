@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { imageUrl } from "@/lib/uploads";
+import type { PostType } from "@/modules/communities/post-types";
 import { cities, provinces } from "@/modules/geo/schema";
 import { profiles } from "@/modules/profiles/schema";
 import {
@@ -27,6 +28,7 @@ export type PostSummary = {
   id: number;
   title: string;
   body: string;
+  type: PostType;
   score: number;
   commentCount: number;
   createdAt: Date;
@@ -146,6 +148,7 @@ function postSelection(viewerId: string | null) {
     id: posts.id,
     title: posts.title,
     body: posts.body,
+    type: posts.type,
     score: posts.score,
     commentCount: posts.commentCount,
     createdAt: posts.createdAt,

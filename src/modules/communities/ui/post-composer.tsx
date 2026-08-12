@@ -6,6 +6,11 @@ import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { MAX_POST_IMAGES } from "@/lib/upload-limits";
 import { createPostAction } from "@/modules/communities/actions";
+import {
+  POST_TYPES,
+  POST_TYPE_HINTS,
+  POST_TYPE_LABELS,
+} from "@/modules/communities/post-types";
 import { ImagePicker } from "@/modules/communities/ui/image-picker";
 
 export function PostComposer({ communityId }: { communityId: number }) {
@@ -17,6 +22,20 @@ export function PostComposer({ communityId }: { communityId: number }) {
       {state.error ? <Alert tone="error">{state.error}</Alert> : null}
       {state.success ? <Alert tone="success">{state.success}</Alert> : null}
       <input type="hidden" name="communityId" value={communityId} />
+      <Field label="Post type" htmlFor="type" error={state.fieldErrors?.type}>
+        <select
+          id="type"
+          name="type"
+          className={inputClass}
+          defaultValue={state.success ? "question" : (state.values?.type ?? "question")}
+        >
+          {POST_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {POST_TYPE_LABELS[type]} — {POST_TYPE_HINTS[type]}
+            </option>
+          ))}
+        </select>
+      </Field>
       <Field label="Title" htmlFor="title" error={state.fieldErrors?.title}>
         <input
           id="title"

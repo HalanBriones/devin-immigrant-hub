@@ -6,6 +6,7 @@ import { getCommunityBySlug } from "@/modules/communities/queries";
 import { AttachmentGallery } from "@/modules/communities/ui/attachment-gallery";
 import { CommentForm } from "@/modules/communities/ui/comment-form";
 import { VoteButton } from "@/modules/communities/ui/post-card";
+import { PostTypeBadge } from "@/modules/communities/ui/post-type-badge";
 import { SignUpPrompt } from "@/modules/communities/ui/sign-up-prompt";
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
@@ -34,6 +35,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
         />
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+            <PostTypeBadge type={post.type} />
             <Link href={`/c/${post.communitySlug}`} className="font-medium text-sky-700">
               {post.communityName}
             </Link>
