@@ -3,11 +3,16 @@
  * Idempotent — re-running resets the demo users' passwords and skips existing content.
  */
 import "@/lib/load-env";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
+import { generateImage } from "@/db/demo-images";
 import { hashPassword } from "@/lib/auth/password";
+import { UPLOAD_DIR } from "@/lib/uploads";
 import { users } from "@/modules/auth/schema";
 import {
+  attachments,
   comments,
   communities,
   communityMembers,
@@ -237,6 +242,43 @@ const DEMO_COMMENTS = [
   },
 ];
 
+/** Post titles / comment bodies that get generated placeholder photos, with how many. */
+const POST_PHOTOS: Record<string, number> = {
+  "Winter gear: what to buy and what to skip": 2,
+  "Landed in Vancouver last month — what surprised me": 3,
+  "Toronto: neighbourhoods that worked for a car-free family": 1,
+  "Winnipeg rent reality check (2026)": 2,
+  "Cheapest ways to get around Calgary in your first month": 1,
+  "Free French classes in Ottawa that accept newcomers fast": 1,
+  "Groceries: how we cut our bill by a third": 2,
+  "Red flags I learned to spot in rental listings": 1,
+};
+
+const COMMENT_PHOTOS: Record<string, number> = {
+  "A guarantor letter from my employer also worked, worth asking HR — mine had a template ready.": 1,
+  "Adding one: if the lease is not the standard provincial form, read every clause twice.": 2,
+};
+
+async function attachPhotos(
+  owner: { postId: number } | { commentId: number },
+  seed: string,
+  count: number,
+): Promise<void> {
+  for (let index = 0; index < count; index += 1) {
+    const image = generateImage(`${seed}#${index}`);
+    await writeFile(path.join(UPLOAD_DIR, image.fileName), image.data);
+    await db
+      .insert(attachments)
+      .values({
+        ...owner,
+        fileName: image.fileName,
+        mimeType: image.mimeType,
+        byteSize: image.byteSize,
+      })
+      .onConflictDoNothing();
+  }
+}
+
 const DEMO_MEMBERSHIPS = [
   "newcomer-basics",
   "housing-rentals",
@@ -246,6 +288,7 @@ const DEMO_MEMBERSHIPS = [
 ];
 
 async function main() {
+  await mkdir(UPLOAD_DIR, { recursive: true });
   const passwordHash = await hashPassword(PASSWORD);
   const userIds = new Map<string, string>();
 
@@ -267,7 +310,11 @@ async function main() {
       })
       .onConflictDoUpdate({
         target: users.email,
-        set: { passwordHash, emailVerifiedAt: new Date(), phoneVerifiedAt: new Date() },
+        set: {
+          passwordHash,
+          emailVerifiedAt: new Date(),
+          phoneVerifiedAt: new Date(),
+        },
       })
       .returning({ id: users.id });
     userIds.set(demo.handle, user.id);
@@ -294,7 +341,10 @@ async function main() {
   const communityIds = new Map(communityRows.map((row) => [row.slug, row.id]));
 
   for (const [handle, userId] of userIds) {
-    const slugs = handle === "demo-newcomer" ? DEMO_MEMBERSHIPS : communityRows.map((c) => c.slug);
+    const slugs =
+      handle === "demo-newcomer"
+        ? DEMO_MEMBERSHIPS
+        : communityRows.map((c) => c.slug);
     for (const slug of slugs) {
       const communityId = communityIds.get(slug);
       if (!communityId) continue;
@@ -323,20 +373,23 @@ async function main() {
       .from(posts)
       .where(eq(posts.title, demo.title))
       .limit(1);
-    if (existing) {
-      postIds.set(demo.title, existing.id);
-      continue;
-    }
 
-    const [post] = await db
-      .insert(posts)
-      .values({ communityId, authorId, title: demo.title, body: demo.body })
-      .returning({ id: posts.id });
-    postIds.set(demo.title, post.id);
-    await db
-      .update(communities)
-      .set({ postCount: sql`${communities.postCount} + 1` })
-      .where(eq(communities.id, communityId));
+    let postId = existing?.id;
+    if (!postId) {
+      const [post] = await db
+        .insert(posts)
+        .values({ communityId, authorId, title: demo.title, body: demo.body })
+        .returning({ id: posts.id });
+      postId = post.id;
+      await db
+        .update(communities)
+        .set({ postCount: sql`${communities.postCount} + 1` })
+        .where(eq(communities.id, communityId));
+    }
+    postIds.set(demo.title, postId);
+
+    const photos = POST_PHOTOS[demo.title];
+    if (photos) await attachPhotos({ postId }, `post:${demo.title}`, photos);
   }
 
   for (const demo of DEMO_COMMENTS) {
@@ -348,12 +401,22 @@ async function main() {
       .from(comments)
       .where(eq(comments.body, demo.body))
       .limit(1);
-    if (existing) continue;
-    await db.insert(comments).values({ postId, authorId, body: demo.body });
-    await db
-      .update(posts)
-      .set({ commentCount: sql`${posts.commentCount} + 1` })
-      .where(eq(posts.id, postId));
+    let commentId = existing?.id;
+    if (!commentId) {
+      const [comment] = await db
+        .insert(comments)
+        .values({ postId, authorId, body: demo.body })
+        .returning({ id: comments.id });
+      commentId = comment.id;
+      await db
+        .update(posts)
+        .set({ commentCount: sql`${posts.commentCount} + 1` })
+        .where(eq(posts.id, postId));
+    }
+
+    const photos = COMMENT_PHOTOS[demo.body];
+    if (photos)
+      await attachPhotos({ commentId }, `comment:${demo.body}`, photos);
   }
 
   const voterId = userIds.get("marc-dubois");
@@ -373,7 +436,9 @@ async function main() {
     }
   }
 
-  console.info(`Demo data ready. Sign in with ${DEMO_USERS[0].email} / ${PASSWORD}`);
+  console.info(
+    `Demo data ready. Sign in with ${DEMO_USERS[0].email} / ${PASSWORD}`,
+  );
 }
 
 main()
