@@ -44,6 +44,7 @@ export const communities = pgTable(
     ),
     cityId: integer("city_id").references(() => cities.id),
     countryOfOrigin: varchar("country_of_origin", { length: 2 }),
+    tags: text("tags").array().notNull().default([]),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),

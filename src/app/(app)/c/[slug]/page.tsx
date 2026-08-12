@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCommunityBySlug, listCommunityPosts } from "@/modules/communities/queries";
 import { MembershipButton } from "@/modules/communities/ui/community-card";
+import { CommunityTags } from "@/modules/communities/ui/community-tags";
 import { InviteShare } from "@/modules/communities/ui/invite-share";
 import { PostCard } from "@/modules/communities/ui/post-card";
 import { PostComposer } from "@/modules/communities/ui/post-composer";
@@ -32,6 +33,7 @@ export default async function CommunityPage({
               {community.description}
             </p>
           ) : null}
+          <CommunityTags tags={community.tags} />
           <p className="text-xs text-slate-500">
             {community.memberCount} members · {community.postCount} posts
           </p>

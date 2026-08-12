@@ -10,6 +10,7 @@ import { fieldErrorsOf, type ActionState } from "@/lib/forms";
 import { MAX_COMMENT_IMAGES, MAX_POST_IMAGES } from "@/lib/upload-limits";
 import { saveImages } from "@/lib/uploads";
 import { POST_TYPES } from "@/modules/communities/post-types";
+import { COMMUNITY_TAGS, MAX_COMMUNITY_TAGS } from "@/modules/communities/tags";
 import {
   COMMENT_REPUTATION,
   POST_UPVOTE_REPUTATION,
@@ -50,6 +51,10 @@ const communitySchema = z.object({
   name: z.string().trim().min(3, "Name must be at least 3 characters").max(60),
   description: z.string().trim().max(300).optional().or(z.literal("")),
   kind: z.enum(["province", "city", "origin", "topic"]),
+  tags: z
+    .array(z.enum(COMMUNITY_TAGS))
+    .min(1, "Pick at least one tag")
+    .max(MAX_COMMUNITY_TAGS, `Pick at most ${MAX_COMMUNITY_TAGS} tags`),
 });
 
 function slugify(value: string): string {
@@ -125,6 +130,7 @@ export async function createCommunityAction(
     name: formData.get("name"),
     description: formData.get("description") ?? "",
     kind: formData.get("kind"),
+    tags: formData.getAll("tags").map(String),
   });
   if (!parsed.success) {
     return { fieldErrors: fieldErrorsOf(parsed.error), values };
@@ -157,6 +163,7 @@ export async function createCommunityAction(
         name: parsed.data.name,
         description: parsed.data.description || null,
         kind: parsed.data.kind,
+        tags: parsed.data.tags,
         createdBy: user.id,
         memberCount: 1,
       })

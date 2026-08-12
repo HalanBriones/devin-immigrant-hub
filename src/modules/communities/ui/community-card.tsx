@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { joinCommunityAction, leaveCommunityAction } from "@/modules/communities/actions";
 import type { CommunitySummary } from "@/modules/communities/queries";
+import { CommunityTags } from "@/modules/communities/ui/community-tags";
 
 const KIND_LABELS: Record<CommunitySummary["kind"], string> = {
   province: "Province",
@@ -65,6 +66,7 @@ export function CommunityCard({
       {community.description ? (
         <p className="text-sm leading-relaxed text-slate-600">{community.description}</p>
       ) : null}
+      <CommunityTags tags={community.tags} />
       <p className="text-xs text-slate-500">
         {community.memberCount} members · {community.postCount} posts
       </p>

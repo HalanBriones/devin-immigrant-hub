@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { imageUrl } from "@/lib/uploads";
 import type { PostType } from "@/modules/communities/post-types";
+import { asCommunityTags, type CommunityTag } from "@/modules/communities/tags";
 import { cities, provinces } from "@/modules/geo/schema";
 import { profiles } from "@/modules/profiles/schema";
 import {
@@ -21,6 +22,7 @@ export type CommunitySummary = {
   kind: "province" | "city" | "origin" | "topic";
   memberCount: number;
   postCount: number;
+  tags: CommunityTag[];
   joined: boolean;
 };
 
@@ -90,7 +92,7 @@ function joinedExpr(viewerId: string | null) {
 export async function listCommunities(
   viewerId: string | null,
 ): Promise<CommunitySummary[]> {
-  return db
+  const rows = await db
     .select({
       id: communities.id,
       slug: communities.slug,
@@ -99,10 +101,12 @@ export async function listCommunities(
       kind: communities.kind,
       memberCount: communities.memberCount,
       postCount: communities.postCount,
+      tags: communities.tags,
       joined: joinedExpr(viewerId),
     })
     .from(communities)
     .orderBy(desc(communities.memberCount), communities.name);
+  return rows.map((row) => ({ ...row, tags: asCommunityTags(row.tags) }));
 }
 
 export type CommunityDetail = CommunitySummary & {
@@ -124,6 +128,7 @@ export async function getCommunityBySlug(
       kind: communities.kind,
       memberCount: communities.memberCount,
       postCount: communities.postCount,
+      tags: communities.tags,
       provinceName: provinces.nameEn,
       cityName: cities.name,
       countryOfOrigin: communities.countryOfOrigin,
@@ -134,7 +139,8 @@ export async function getCommunityBySlug(
     .leftJoin(cities, eq(cities.id, communities.cityId))
     .where(eq(communities.slug, slug))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  return { ...row, tags: asCommunityTags(row.tags) };
 }
 
 function postSelection(viewerId: string | null) {
@@ -273,7 +279,7 @@ export async function isMember(
 export async function listJoinedCommunities(
   userId: string,
 ): Promise<CommunitySummary[]> {
-  return db
+  const rows = await db
     .select({
       id: communities.id,
       slug: communities.slug,
@@ -282,10 +288,12 @@ export async function listJoinedCommunities(
       kind: communities.kind,
       memberCount: communities.memberCount,
       postCount: communities.postCount,
+      tags: communities.tags,
       joined: sql<boolean>`true`,
     })
     .from(communityMembers)
     .innerJoin(communities, eq(communities.id, communityMembers.communityId))
     .where(eq(communityMembers.userId, userId))
     .orderBy(communities.name);
+  return rows.map((row) => ({ ...row, tags: asCommunityTags(row.tags) }));
 }
