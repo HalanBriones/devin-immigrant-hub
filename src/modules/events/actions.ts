@@ -8,7 +8,7 @@ import { db } from "@/db/client";
 import { requireUser } from "@/lib/auth/session";
 import { fieldErrorsOf, type ActionState } from "@/lib/forms";
 import { saveImages } from "@/lib/uploads";
-import { attachments } from "@/modules/communities/schema";
+import { attachments } from "@/modules/attachments/schema";
 import { eventAttendees, events } from "@/modules/events/schema";
 import { EVENT_TAGS, MAX_EVENT_IMAGES, MAX_EVENT_TAGS } from "@/modules/events/tags";
 

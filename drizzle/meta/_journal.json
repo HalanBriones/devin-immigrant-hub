@@ -43,6 +43,13 @@
       "when": 1786655857189,
       "tag": "0005_dry_runaways",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786656576899,
+      "tag": "0006_bizarre_calypso",
+      "breakpoints": true
     }
   ]
 }

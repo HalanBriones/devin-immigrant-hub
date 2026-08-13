@@ -16,8 +16,8 @@ import {
   POST_UPVOTE_REPUTATION,
 } from "@/modules/communities/reputation";
 import { awardReputation } from "@/modules/profiles/reputation";
+import { attachments } from "@/modules/attachments/schema";
 import {
-  attachments,
   comments,
   communities,
   communityMembers,

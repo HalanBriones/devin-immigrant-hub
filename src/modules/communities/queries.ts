@@ -5,8 +5,8 @@ import type { PostType } from "@/modules/communities/post-types";
 import { asCommunityTags, type CommunityTag } from "@/modules/communities/tags";
 import { cities, provinces } from "@/modules/geo/schema";
 import { profiles } from "@/modules/profiles/schema";
+import { attachments } from "@/modules/attachments/schema";
 import {
-  attachments,
   comments,
   communities,
   communityMembers,

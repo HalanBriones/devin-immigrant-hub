@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { imageUrl } from "@/lib/uploads";
-import { attachments } from "@/modules/communities/schema";
+import { attachments } from "@/modules/attachments/schema";
 import { eventAttendees, events } from "@/modules/events/schema";
 import { asEventTags, type EventTag } from "@/modules/events/tags";
 import { profiles } from "@/modules/profiles/schema";

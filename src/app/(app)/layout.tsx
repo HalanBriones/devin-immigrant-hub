@@ -29,6 +29,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/events" className="nav-link">
               Events
             </Link>
+            <Link href="/marketplace" className="nav-link">
+              Marketplace
+            </Link>
             {user ? (
               <>
                 <Link href="/settings/profile" className="nav-link">

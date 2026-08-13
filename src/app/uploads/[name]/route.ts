@@ -3,7 +3,7 @@ import path from "node:path";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { isStoredImageName, UPLOAD_DIR } from "@/lib/uploads";
-import { attachments } from "@/modules/communities/schema";
+import { attachments } from "@/modules/attachments/schema";
 
 export async function GET(
   _request: Request,

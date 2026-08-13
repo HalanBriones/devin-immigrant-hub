@@ -1,6 +1,4 @@
-import { sql } from "drizzle-orm";
 import {
-  check,
   index,
   integer,
   pgEnum,
@@ -14,7 +12,6 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { users } from "@/modules/auth/schema";
-import { events } from "@/modules/events/schema";
 import { cities, provinces } from "@/modules/geo/schema";
 import { profiles } from "@/modules/profiles/schema";
 
@@ -124,37 +121,6 @@ export const comments = pgTable(
   },
   (table) => [
     index("comments_post_created_idx").on(table.postId, table.createdAt),
-  ],
-);
-
-export const attachments = pgTable(
-  "attachments",
-  {
-    id: serial("id").primaryKey(),
-    postId: integer("post_id").references(() => posts.id, {
-      onDelete: "cascade",
-    }),
-    commentId: integer("comment_id").references(() => comments.id, {
-      onDelete: "cascade",
-    }),
-    eventId: integer("event_id").references(() => events.id, {
-      onDelete: "cascade",
-    }),
-    fileName: text("file_name").notNull().unique(),
-    mimeType: text("mime_type").notNull(),
-    byteSize: integer("byte_size").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [
-    index("attachments_post_idx").on(table.postId),
-    index("attachments_comment_idx").on(table.commentId),
-    index("attachments_event_idx").on(table.eventId),
-    check(
-      "attachments_single_owner",
-      sql`num_nonnulls(${table.postId}, ${table.commentId}, ${table.eventId}) = 1`,
-    ),
   ],
 );
 

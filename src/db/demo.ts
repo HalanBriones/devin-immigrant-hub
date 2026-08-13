@@ -12,8 +12,8 @@ import { hashPassword } from "@/lib/auth/password";
 import { UPLOAD_DIR } from "@/lib/uploads";
 import { users } from "@/modules/auth/schema";
 import type { PostType } from "@/modules/communities/post-types";
+import { attachments } from "@/modules/attachments/schema";
 import {
-  attachments,
   comments,
   communities,
   communityMembers,
@@ -23,6 +23,8 @@ import {
 import { eventAttendees, events } from "@/modules/events/schema";
 import type { EventTag } from "@/modules/events/tags";
 import { cities } from "@/modules/geo/schema";
+import type { ListingCategory } from "@/modules/marketplace/categories";
+import { listings } from "@/modules/marketplace/schema";
 import { profiles } from "@/modules/profiles/schema";
 
 const PASSWORD = "NewcomerDemo2026!";
@@ -331,7 +333,11 @@ const COMMENT_PHOTOS: Record<string, number> = {
 };
 
 async function attachPhotos(
-  owner: { postId: number } | { commentId: number } | { eventId: number },
+  owner:
+    | { postId: number }
+    | { commentId: number }
+    | { eventId: number }
+    | { listingId: number },
   seed: string,
   count: number,
 ): Promise<void> {
@@ -365,7 +371,7 @@ type DemoEvent = {
 
 const DEMO_EVENTS: DemoEvent[] = [
   {
-    host: "priya-sharma",
+    host: "priya-nair",
     title: "Newcomer potluck — bring a dish from home",
     description:
       "Everyone brings one dish from their home country and we eat together in the community room. Kids welcome, there is a play corner. Label your dish with the ingredients so people with allergies can pick safely. We usually end with a round of introductions so nobody leaves without meeting someone.",
@@ -388,7 +394,7 @@ const DEMO_EVENTS: DemoEvent[] = [
     cityName: "Montreal",
     tags: ["jobs", "workshop", "networking"],
     photos: 1,
-    guests: ["wei-chen"],
+    guests: ["wei-zhang"],
   },
   {
     host: "amina-hassan",
@@ -404,7 +410,7 @@ const DEMO_EVENTS: DemoEvent[] = [
     guests: ["olena-kovalenko", "demo-newcomer"],
   },
   {
-    host: "wei-chen",
+    host: "wei-zhang",
     title: "Winter gear swap and free tune-up",
     description:
       "Outgrown boots, jackets and snow pants find a new owner. Bring what no longer fits and take what you need — no money changes hands. A volunteer will patch small tears and replace zippers on the spot.",
@@ -414,7 +420,7 @@ const DEMO_EVENTS: DemoEvent[] = [
     cityName: "Vancouver",
     tags: ["volunteering", "family", "social"],
     photos: 1,
-    guests: ["priya-sharma"],
+    guests: ["priya-nair"],
   },
   {
     host: "olena-kovalenko",
@@ -427,7 +433,136 @@ const DEMO_EVENTS: DemoEvent[] = [
     cityName: "Calgary",
     tags: ["sports", "social"],
     photos: 1,
-    guests: ["marc-dubois", "wei-chen"],
+    guests: ["marc-dubois", "wei-zhang"],
+  },
+];
+
+type DemoListing = {
+  seller: string;
+  category: ListingCategory;
+  title: string;
+  description: string;
+  price: number | null;
+  provinceCode: string;
+  cityName: string;
+  community: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  photos: number;
+};
+
+const DEMO_LISTINGS: DemoListing[] = [
+  {
+    seller: "priya-nair",
+    category: "housing",
+    title: "Bright 1-bedroom near Danforth, utilities included",
+    description:
+      "Second floor of a semi-detached house, ten minutes on foot from Pape station. Heat, hydro and water are included; laundry is shared with the owners downstairs. No credit history required — an employment letter or a settlement agency reference is enough. Available from the first of next month, twelve month lease.",
+    price: 1850,
+    provinceCode: "ON",
+    cityName: "Toronto",
+    community: "housing-rentals",
+    contactEmail: "priya@immigranthub.ca",
+    contactPhone: "+1 416 555 0142",
+    photos: 3,
+  },
+  {
+    seller: "marc-dubois",
+    category: "jobs",
+    title: "Part-time kitchen help, evenings, no French required",
+    description:
+      "Family restaurant in Villeray looking for two people for evening prep and dishes, 20 to 25 hours a week. Basic English is fine, we will teach the kitchen French you need. Paid weekly, meals included on shift. Good first Canadian job with a real reference letter afterwards.",
+    price: 1900,
+    provinceCode: "QC",
+    cityName: "Montreal",
+    community: "jobs-credentials",
+    contactEmail: "marc@immigranthub.ca",
+    contactPhone: null,
+    photos: 1,
+  },
+  {
+    seller: "wei-zhang",
+    category: "buy_sell",
+    title: "Full winter kit for a family of three, barely used",
+    description:
+      "Two adult parkas rated to -30, one kids parka, three pairs of boots (sizes 8, 10 and kids 2), snow pants and a bin of mitts and toques. We bought all of it last October and are moving to Victoria. Everything washed and ready. Selling as one lot only, pick up in the north end.",
+    price: 220,
+    provinceCode: "MB",
+    cityName: "Winnipeg",
+    community: "winter-daily-life",
+    contactEmail: "wei@immigranthub.ca",
+    contactPhone: "+1 204 555 0188",
+    photos: 2,
+  },
+  {
+    seller: "amina-hassan",
+    category: "services",
+    title: "Certified translation of diplomas and civil documents",
+    description:
+      "Certified translator (Arabic, Somali, English) accepted by IRCC and by school boards. Flat rate per page, three business day turnaround, rush available. I scan and email the certified copy and mail the stamped original the same week. Free quote if you send a photo of the document first.",
+    price: 40,
+    provinceCode: "AB",
+    cityName: "Calgary",
+    community: null,
+    contactEmail: "amina@immigranthub.ca",
+    contactPhone: "+1 403 555 0119",
+    photos: 0,
+  },
+  {
+    seller: "olena-kovalenko",
+    category: "housing",
+    title: "Room in a shared apartment, women only, near uOttawa",
+    description:
+      "Furnished room in a three bedroom apartment shared with two Ukrainian students. Bed, desk, wardrobe and a shared kitchen and bathroom. Internet and utilities included, no deposit beyond the first month. Bus 11 stops at the corner; the campus is a twenty minute walk.",
+    price: 750,
+    provinceCode: "ON",
+    cityName: "Ottawa",
+    community: "housing-rentals",
+    contactEmail: "olena@immigranthub.ca",
+    contactPhone: null,
+    photos: 2,
+  },
+  {
+    seller: "demo-newcomer",
+    category: "buy_sell",
+    title: "IKEA desk and office chair, moving out sale",
+    description:
+      "Bekant desk (160x80) and a Markus chair, both two years old and in good shape apart from a scratch on the desk edge. Ideal for anyone setting up a first apartment. Pick up only in Mount Pleasant, I can help you carry them to the car.",
+    price: 120,
+    provinceCode: "BC",
+    cityName: "Vancouver",
+    community: "vancouver-newcomers",
+    contactEmail: "demo@immigranthub.ca",
+    contactPhone: null,
+    photos: 1,
+  },
+  {
+    seller: "priya-nair",
+    category: "services",
+    title: "Weekend driving lessons for new arrivals (G1 to G2)",
+    description:
+      "Patient instructor, dual control car, lessons in English, Hindi or Malayalam. I focus on the G2 road test route and on winter driving basics that no one teaches you. Hourly rate, package of ten hours is cheaper. I can also rent you the car for the test itself.",
+    price: 55,
+    provinceCode: "ON",
+    cityName: "Toronto",
+    community: null,
+    contactEmail: null,
+    contactPhone: "+1 416 555 0177",
+    photos: 0,
+  },
+  {
+    seller: "wei-zhang",
+    category: "jobs",
+    title: "Warehouse team lead, permanent, credential support",
+    description:
+      "Distribution centre in Surrey hiring a team lead for the afternoon shift. Permanent full time, benefits after three months, and the company pays for forklift certification. Previous supervisory experience abroad counts — we interview in English and take references from outside Canada.",
+    price: null,
+    provinceCode: "BC",
+    cityName: "Surrey",
+    community: "jobs-credentials",
+    contactEmail: "wei@immigranthub.ca",
+    contactPhone: null,
+    photos: 1,
   },
 ];
 
@@ -625,6 +760,49 @@ async function main() {
       .onConflictDoNothing();
 
     await attachPhotos({ eventId: event.id }, `event:${demo.title}`, demo.photos);
+  }
+
+  for (const demo of DEMO_LISTINGS) {
+    const sellerId = userIds.get(demo.seller);
+    if (!sellerId) continue;
+    const [existing] = await db
+      .select({ id: listings.id })
+      .from(listings)
+      .where(eq(listings.title, demo.title))
+      .limit(1);
+    if (existing) continue;
+
+    const [city] = await db
+      .select({ id: cities.id })
+      .from(cities)
+      .where(eq(cities.name, demo.cityName))
+      .limit(1);
+
+    const [listing] = await db
+      .insert(listings)
+      .values({
+        sellerId,
+        category: demo.category,
+        title: demo.title,
+        description: demo.description,
+        priceCents: demo.price === null ? null : demo.price * 100,
+        provinceCode: demo.provinceCode,
+        cityId: city?.id,
+        communityId: demo.community
+          ? communityIds.get(demo.community)
+          : undefined,
+        contactEmail: demo.contactEmail,
+        contactPhone: demo.contactPhone,
+      })
+      .returning({ id: listings.id });
+
+    if (demo.photos > 0) {
+      await attachPhotos(
+        { listingId: listing.id },
+        `listing:${demo.title}`,
+        demo.photos,
+      );
+    }
   }
 
   const voterId = userIds.get("marc-dubois");
