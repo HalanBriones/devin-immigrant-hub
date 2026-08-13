@@ -392,7 +392,7 @@ const DEMO_EVENTS: DemoEvent[] = [
   },
   {
     host: "amina-hassan",
-    title: "Saturday English–French conversation walk",
+    title: "English–French conversation walk",
     description:
       "A slow walk along the river where we swap thirty minutes of English for thirty minutes of French. No teachers, no grammar drills, just conversation with people who are also learning. Dress warm and bring water.",
     inDays: 3,
@@ -418,7 +418,7 @@ const DEMO_EVENTS: DemoEvent[] = [
   },
   {
     host: "olena-kovalenko",
-    title: "Sunday soccer pick-up game",
+    title: "Weekend soccer pick-up game",
     description:
       "Mixed level pick-up game, all ages and abilities. We split teams on the spot so it does not matter if you come alone. Bring indoor shoes; the field is booked for two hours.",
     inDays: -9,

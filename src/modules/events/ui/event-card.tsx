@@ -8,7 +8,7 @@ export function formatEventDate(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
     dateStyle: "full",
     timeStyle: "short",
-    timeZone: "America/Toronto",
+    timeZone: "UTC",
   }).format(date);
 }
 
