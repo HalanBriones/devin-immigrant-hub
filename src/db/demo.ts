@@ -20,6 +20,8 @@ import {
   postVotes,
   posts,
 } from "@/modules/communities/schema";
+import { eventAttendees, events } from "@/modules/events/schema";
+import type { EventTag } from "@/modules/events/tags";
 import { cities } from "@/modules/geo/schema";
 import { profiles } from "@/modules/profiles/schema";
 
@@ -329,7 +331,7 @@ const COMMENT_PHOTOS: Record<string, number> = {
 };
 
 async function attachPhotos(
-  owner: { postId: number } | { commentId: number },
+  owner: { postId: number } | { commentId: number } | { eventId: number },
   seed: string,
   count: number,
 ): Promise<void> {
@@ -346,6 +348,94 @@ async function attachPhotos(
       })
       .onConflictDoNothing();
   }
+}
+
+type DemoEvent = {
+  host: string;
+  title: string;
+  description: string;
+  inDays: number;
+  hour: number;
+  locationName: string;
+  cityName: string;
+  tags: EventTag[];
+  photos: number;
+  guests: string[];
+};
+
+const DEMO_EVENTS: DemoEvent[] = [
+  {
+    host: "priya-sharma",
+    title: "Newcomer potluck — bring a dish from home",
+    description:
+      "Everyone brings one dish from their home country and we eat together in the community room. Kids welcome, there is a play corner. Label your dish with the ingredients so people with allergies can pick safely. We usually end with a round of introductions so nobody leaves without meeting someone.",
+    inDays: 6,
+    hour: 18,
+    locationName: "Regent Park Community Centre, 402 Shuter St",
+    cityName: "Toronto",
+    tags: ["food", "family", "social"],
+    photos: 2,
+    guests: ["demo-newcomer", "marc-dubois", "amina-hassan"],
+  },
+  {
+    host: "marc-dubois",
+    title: "Resume clinic for internationally trained professionals",
+    description:
+      "Bring a printed copy of your resume and we rewrite it together in Canadian format: no photo, no age, achievements over duties. Two recruiters are joining to answer questions about credential recognition. Free, no registration, drop in any time in the two hours.",
+    inDays: 12,
+    hour: 17,
+    locationName: "Bibliothèque Saint-Sulpice, 1700 rue Saint-Denis",
+    cityName: "Montreal",
+    tags: ["jobs", "workshop", "networking"],
+    photos: 1,
+    guests: ["wei-chen"],
+  },
+  {
+    host: "amina-hassan",
+    title: "Saturday English–French conversation walk",
+    description:
+      "A slow walk along the river where we swap thirty minutes of English for thirty minutes of French. No teachers, no grammar drills, just conversation with people who are also learning. Dress warm and bring water.",
+    inDays: 3,
+    hour: 10,
+    locationName: "Rideau Canal, Fifth Avenue entrance",
+    cityName: "Ottawa",
+    tags: ["language", "outdoors", "social"],
+    photos: 2,
+    guests: ["olena-kovalenko", "demo-newcomer"],
+  },
+  {
+    host: "wei-chen",
+    title: "Winter gear swap and free tune-up",
+    description:
+      "Outgrown boots, jackets and snow pants find a new owner. Bring what no longer fits and take what you need — no money changes hands. A volunteer will patch small tears and replace zippers on the spot.",
+    inDays: 20,
+    hour: 13,
+    locationName: "Mount Pleasant Neighbourhood House, 800 E Broadway",
+    cityName: "Vancouver",
+    tags: ["volunteering", "family", "social"],
+    photos: 1,
+    guests: ["priya-sharma"],
+  },
+  {
+    host: "olena-kovalenko",
+    title: "Sunday soccer pick-up game",
+    description:
+      "Mixed level pick-up game, all ages and abilities. We split teams on the spot so it does not matter if you come alone. Bring indoor shoes; the field is booked for two hours.",
+    inDays: -9,
+    hour: 15,
+    locationName: "Genesis Centre, 7555 Falconridge Blvd NE",
+    cityName: "Calgary",
+    tags: ["sports", "social"],
+    photos: 1,
+    guests: ["marc-dubois", "wei-chen"],
+  },
+];
+
+function eventDate(inDays: number, hour: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + inDays);
+  date.setHours(hour, 0, 0, 0);
+  return date;
 }
 
 const DEMO_MEMBERSHIPS = [
@@ -497,6 +587,44 @@ async function main() {
     const photos = COMMENT_PHOTOS[demo.body];
     if (photos)
       await attachPhotos({ commentId }, `comment:${demo.body}`, photos);
+  }
+
+  for (const demo of DEMO_EVENTS) {
+    const hostId = userIds.get(demo.host);
+    if (!hostId) continue;
+    const [existing] = await db
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.title, demo.title))
+      .limit(1);
+    if (existing) continue;
+
+    const guestIds = demo.guests
+      .map((handle) => userIds.get(handle))
+      .filter((id): id is string => Boolean(id));
+
+    const [event] = await db
+      .insert(events)
+      .values({
+        hostId,
+        title: demo.title,
+        description: demo.description,
+        startsAt: eventDate(demo.inDays, demo.hour),
+        locationName: demo.locationName,
+        cityName: demo.cityName,
+        tags: demo.tags,
+        attendeeCount: guestIds.length + 1,
+      })
+      .returning({ id: events.id });
+
+    await db
+      .insert(eventAttendees)
+      .values(
+        [hostId, ...guestIds].map((userId) => ({ eventId: event.id, userId })),
+      )
+      .onConflictDoNothing();
+
+    await attachPhotos({ eventId: event.id }, `event:${demo.title}`, demo.photos);
   }
 
   const voterId = userIds.get("marc-dubois");
