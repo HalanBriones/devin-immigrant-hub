@@ -50,6 +50,13 @@
       "when": 1786656576899,
       "tag": "0006_bizarre_calypso",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786660799534,
+      "tag": "0007_boring_the_hood",
+      "breakpoints": true
     }
   ]
 }

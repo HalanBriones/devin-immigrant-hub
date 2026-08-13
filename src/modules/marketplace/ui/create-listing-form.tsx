@@ -15,9 +15,7 @@ import type { FilterOptions } from "@/modules/marketplace/ui/listing-filters";
 
 const PRICE_HINTS: Record<string, string> = {
   housing: "Monthly rent in CAD. Leave empty if it varies.",
-  jobs: "Hourly or monthly pay in CAD. Optional.",
   buy_sell: "Asking price in CAD. Leave empty for free items.",
-  services: "Your rate in CAD. Optional.",
 };
 
 export function CreateListingForm({ options }: { options: FilterOptions }) {

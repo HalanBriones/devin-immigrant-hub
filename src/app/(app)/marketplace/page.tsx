@@ -52,8 +52,9 @@ export default async function MarketplacePage({
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Marketplace</h1>
           <p className="text-sm text-slate-600">
-            Housing, jobs, things to buy and local services shared by other
-            newcomers. Contact details are on each listing — no fees, no middlemen.
+            Things to buy and sell, and rooms and apartments for rent, posted by
+            other newcomers. Contact details are on each listing — no fees, no
+            middlemen.
           </p>
         </div>
         <Link

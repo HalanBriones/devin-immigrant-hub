@@ -15,9 +15,7 @@ import { profiles } from "@/modules/profiles/schema";
 
 export const listingCategory = pgEnum("listing_category", [
   "housing",
-  "jobs",
   "buy_sell",
-  "services",
 ]);
 
 export const listingStatus = pgEnum("listing_status", ["active", "closed"]);
