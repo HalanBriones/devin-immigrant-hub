@@ -1,7 +1,9 @@
 import "@/lib/load-env";
+import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { communities } from "@/modules/communities/schema";
 import { cities, interests, languages, provinces } from "@/modules/geo/schema";
+import type { CommunityTag } from "@/modules/communities/tags";
 
 const PROVINCES = [
   ["AB", "Alberta", "Alberta"],
@@ -87,14 +89,42 @@ const INTERESTS = [
   ["arts", "Arts & culture"],
 ] as const;
 
-const TOPIC_COMMUNITIES: [string, string][] = [
-  ["Newcomer basics", "SIN, health card, banking, credit history and your first weeks in Canada."],
-  ["Housing & rentals", "Finding a place, leases, tenant rights and roommate searches."],
-  ["Jobs & credentials", "Canadian resumes, licensing bodies, credential recognition and interviews."],
-  ["Immigration & status", "PR, work permits, study permits, sponsorship and citizenship questions."],
-  ["Schools & families", "Registering kids, daycare, benefits and parenting in a new country."],
-  ["Winter & daily life", "Clothing, transit, groceries and surviving your first Canadian winter."],
+const TOPIC_COMMUNITIES: [string, string, CommunityTag[]][] = [
+  [
+    "Newcomer basics",
+    "SIN, health card, banking, credit history and your first weeks in Canada.",
+    ["guidance", "money", "health"],
+  ],
+  [
+    "Housing & rentals",
+    "Finding a place, leases, tenant rights and roommate searches.",
+    ["housing", "guidance", "legal"],
+  ],
+  [
+    "Jobs & credentials",
+    "Canadian resumes, licensing bodies, credential recognition and interviews.",
+    ["jobs", "education", "guidance"],
+  ],
+  [
+    "Immigration & status",
+    "PR, work permits, study permits, sponsorship and citizenship questions.",
+    ["legal", "guidance"],
+  ],
+  [
+    "Schools & families",
+    "Registering kids, daycare, benefits and parenting in a new country.",
+    ["education", "health", "social"],
+  ],
+  [
+    "Winter & daily life",
+    "Clothing, transit, groceries and surviving your first Canadian winter.",
+    ["guidance", "transport", "food"],
+  ],
 ];
+
+const PROVINCE_TAGS: CommunityTag[] = ["guidance", "jobs", "housing", "events"];
+const CITY_TAGS: CommunityTag[] = ["housing", "jobs", "events", "food"];
+const ORIGIN_TAGS: CommunityTag[] = ["social", "food", "events", "language"];
 
 const PROVINCE_COMMUNITIES = ["AB", "BC", "MB", "NS", "ON", "QC", "SK"] as const;
 
@@ -155,11 +185,12 @@ async function main() {
   const provinceName = new Map(provinceRows.map((row) => [row.code, row.nameEn]));
 
   const communityRows = [
-    ...TOPIC_COMMUNITIES.map(([name, description]) => ({
+    ...TOPIC_COMMUNITIES.map(([name, description, tags]) => ({
       slug: slugify(name),
       name,
       description,
       kind: "topic" as const,
+      tags,
     })),
     ...PROVINCE_COMMUNITIES.map((code) => ({
       slug: slugify(`${provinceName.get(code) ?? code} newcomers`),
@@ -167,6 +198,7 @@ async function main() {
       description: `Settlement questions and local tips for ${provinceName.get(code) ?? code}.`,
       kind: "province" as const,
       provinceCode: code,
+      tags: PROVINCE_TAGS,
     })),
     ...CITY_COMMUNITIES.flatMap(([provinceCode, cityName]) => {
       const city = cityRows.find(
@@ -181,6 +213,7 @@ async function main() {
           kind: "city" as const,
           provinceCode,
           cityId: city.id,
+          tags: CITY_TAGS,
         },
       ];
     }),
@@ -190,10 +223,17 @@ async function main() {
       description: `Connect with people from your country of origin across Canada.`,
       kind: "origin" as const,
       countryOfOrigin,
+      tags: ORIGIN_TAGS,
     })),
   ];
 
-  await db.insert(communities).values(communityRows).onConflictDoNothing();
+  await db
+    .insert(communities)
+    .values(communityRows)
+    .onConflictDoUpdate({
+      target: communities.slug,
+      set: { tags: sql`excluded.tags` },
+    });
 
   console.info(`Seed complete (${communityRows.length} communities)`);
 }

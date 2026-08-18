@@ -1,6 +1,5 @@
 import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-export const userRole = pgEnum("user_role", ["user", "moderator", "admin"]);
 export const verificationKind = pgEnum("verification_kind", [
   "email",
   "phone",
@@ -14,7 +13,6 @@ export const users = pgTable("users", {
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   phone: text("phone"),
   phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
-  role: userRole("role").notNull().default("user"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });

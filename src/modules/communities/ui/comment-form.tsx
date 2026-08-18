@@ -4,7 +4,9 @@ import { useActionState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { MAX_COMMENT_IMAGES } from "@/lib/upload-limits";
 import { createCommentAction } from "@/modules/communities/actions";
+import { ImagePicker } from "@/modules/communities/ui/image-picker";
 
 export function CommentForm({ postId }: { postId: number }) {
   const [state, formAction] = useActionState(createCommentAction, {});
@@ -23,6 +25,7 @@ export function CommentForm({ postId }: { postId: number }) {
           defaultValue={state.success ? "" : (state.values?.body ?? "")}
         />
       </Field>
+      <ImagePicker max={MAX_COMMENT_IMAGES} />
       <div>
         <SubmitButton label="Post comment" />
       </div>

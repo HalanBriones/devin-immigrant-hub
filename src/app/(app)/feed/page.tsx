@@ -1,27 +1,64 @@
 import Link from "next/link";
 import { ReputationBadge, VerificationBadge } from "@/components/ui/badge";
-import { requireUser } from "@/lib/auth/session";
-import { listFeedPosts, listJoinedCommunities } from "@/modules/communities/queries";
+import { getCurrentUser } from "@/lib/auth/session";
+import {
+  listFeedPosts,
+  listJoinedCommunities,
+  listPublicPosts,
+} from "@/modules/communities/queries";
 import { PostCard } from "@/modules/communities/ui/post-card";
 import { getProfileByUserId } from "@/modules/profiles/queries";
 
 export default async function FeedPage() {
-  const user = await requireUser();
+  const user = await getCurrentUser();
+
+  if (!user) {
+    const posts = await listPublicPosts(null);
+    return (
+      <div className="flex flex-col gap-6">
+        <section className="card flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-semibold tracking-tight">What newcomers are discussing</h1>
+            <p className="text-sm text-slate-600">
+              Browse freely. Create a free account to join communities, post, comment and upvote.
+            </p>
+          </div>
+          <Link
+            href="/register"
+            className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-700"
+          >
+            Create account
+          </Link>
+        </section>
+
+        <section className="flex flex-col gap-4">
+          {posts.length === 0 ? (
+            <p className="text-sm text-slate-500">No discussions yet.</p>
+          ) : (
+            posts.map((post) => <PostCard key={post.id} post={post} signedIn={false} />)
+          )}
+        </section>
+      </div>
+    );
+  }
+
   const profile = await getProfileByUserId(user.id);
   const [feedPosts, joined] = await Promise.all([
     listFeedPosts(user.id),
     listJoinedCommunities(user.id),
   ]);
 
+  const editProfileHref = profile ? `/u/${profile.handle}?edit=1` : "/onboarding";
+  const verifyHref = profile ? `/u/${profile.handle}#verification` : "/onboarding";
   const steps = [
-    { label: "Verify your email", done: user.emailVerified, href: "/settings/verification" },
-    { label: "Verify your phone number", done: user.phoneVerified, href: "/settings/verification" },
+    { label: "Verify your email", done: user.emailVerified, href: verifyHref },
+    { label: "Verify your phone number", done: user.phoneVerified, href: verifyHref },
     {
       label: "Add your city and country of origin",
       done: Boolean(profile?.cityId && profile?.countryOfOrigin),
-      href: "/settings/profile",
+      href: editProfileHref,
     },
-    { label: "Write a short bio", done: Boolean(profile?.bio), href: "/settings/profile" },
+    { label: "Write a short bio", done: Boolean(profile?.bio), href: editProfileHref },
     { label: "Join a community", done: joined.length > 0, href: "/communities" },
   ];
   const setupDone = steps.every((step) => step.done);
@@ -62,7 +99,7 @@ export default async function FeedPage() {
             to see discussions here.
           </p>
         ) : (
-          feedPosts.map((post) => <PostCard key={post.id} post={post} />)
+          feedPosts.map((post) => <PostCard key={post.id} post={post} signedIn />)
         )}
       </section>
 

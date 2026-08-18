@@ -1,17 +1,23 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db/client";
 import { requireUser } from "@/lib/auth/session";
 import { fieldErrorsOf, type ActionState } from "@/lib/forms";
+import { MAX_COMMENT_IMAGES, MAX_POST_IMAGES } from "@/lib/upload-limits";
+import { saveImages } from "@/lib/uploads";
+import { POST_TYPES } from "@/modules/communities/post-types";
+import { COMMUNITY_TAGS, MAX_COMMUNITY_TAGS } from "@/modules/communities/tags";
 import {
   COMMENT_REPUTATION,
   POST_UPVOTE_REPUTATION,
 } from "@/modules/communities/reputation";
+import { notify } from "@/modules/notifications/notify";
 import { awardReputation } from "@/modules/profiles/reputation";
+import { attachments } from "@/modules/attachments/schema";
 import {
   comments,
   communities,
@@ -20,10 +26,21 @@ import {
   posts,
 } from "@/modules/communities/schema";
 
+function imageFiles(formData: FormData): File[] {
+  return formData
+    .getAll("images")
+    .filter((entry): entry is File => entry instanceof File);
+}
+
 const postSchema = z.object({
   communityId: z.coerce.number().int().positive(),
-  title: z.string().trim().min(5, "Title must be at least 5 characters").max(140),
+  title: z
+    .string()
+    .trim()
+    .min(5, "Title must be at least 5 characters")
+    .max(140),
   body: z.string().trim().min(10, "Write at least 10 characters").max(5000),
+  type: z.enum(POST_TYPES, { message: "Pick a post type" }),
 });
 
 const commentSchema = z.object({
@@ -35,6 +52,10 @@ const communitySchema = z.object({
   name: z.string().trim().min(3, "Name must be at least 3 characters").max(60),
   description: z.string().trim().max(300).optional().or(z.literal("")),
   kind: z.enum(["province", "city", "origin", "topic"]),
+  tags: z
+    .array(z.enum(COMMUNITY_TAGS))
+    .min(1, "Pick at least one tag")
+    .max(MAX_COMMUNITY_TAGS, `Pick at most ${MAX_COMMUNITY_TAGS} tags`),
 });
 
 function slugify(value: string): string {
@@ -79,7 +100,10 @@ export async function leaveCommunityAction(formData: FormData): Promise<void> {
     const deleted = await tx
       .delete(communityMembers)
       .where(
-        and(eq(communityMembers.communityId, communityId), eq(communityMembers.userId, user.id)),
+        and(
+          eq(communityMembers.communityId, communityId),
+          eq(communityMembers.userId, user.id),
+        ),
       )
       .returning({ userId: communityMembers.userId });
     if (deleted.length > 0) {
@@ -107,13 +131,18 @@ export async function createCommunityAction(
     name: formData.get("name"),
     description: formData.get("description") ?? "",
     kind: formData.get("kind"),
+    tags: formData.getAll("tags").map(String),
   });
   if (!parsed.success) {
     return { fieldErrors: fieldErrorsOf(parsed.error), values };
   }
 
   const slug = slugify(parsed.data.name);
-  if (!slug) return { fieldErrors: { name: "Use at least a few letters or numbers" }, values };
+  if (!slug)
+    return {
+      fieldErrors: { name: "Use at least a few letters or numbers" },
+      values,
+    };
 
   const [existing] = await db
     .select({ id: communities.id })
@@ -121,7 +150,10 @@ export async function createCommunityAction(
     .where(eq(communities.slug, slug))
     .limit(1);
   if (existing) {
-    return { fieldErrors: { name: "A community with a similar name already exists" }, values };
+    return {
+      fieldErrors: { name: "A community with a similar name already exists" },
+      values,
+    };
   }
 
   await db.transaction(async (tx) => {
@@ -132,13 +164,18 @@ export async function createCommunityAction(
         name: parsed.data.name,
         description: parsed.data.description || null,
         kind: parsed.data.kind,
+        tags: parsed.data.tags,
         createdBy: user.id,
         memberCount: 1,
       })
       .returning({ id: communities.id });
     await tx
       .insert(communityMembers)
-      .values({ communityId: community.id, userId: user.id, role: "moderator" });
+      .values({
+        communityId: community.id,
+        userId: user.id,
+        role: "moderator",
+      });
   });
 
   revalidatePath("/communities");
@@ -153,21 +190,28 @@ export async function createPostAction(
   const values = {
     title: String(formData.get("title") ?? ""),
     body: String(formData.get("body") ?? ""),
+    type: String(formData.get("type") ?? ""),
   };
   const parsed = postSchema.safeParse({
     communityId: formData.get("communityId"),
     title: formData.get("title"),
     body: formData.get("body"),
+    type: formData.get("type"),
   });
   if (!parsed.success) {
     return { fieldErrors: fieldErrorsOf(parsed.error), values };
   }
 
-  const { communityId, title, body } = parsed.data;
+  const { communityId, title, body, type } = parsed.data;
   const [membership] = await db
     .select({ userId: communityMembers.userId })
     .from(communityMembers)
-    .where(and(eq(communityMembers.communityId, communityId), eq(communityMembers.userId, user.id)))
+    .where(
+      and(
+        eq(communityMembers.communityId, communityId),
+        eq(communityMembers.userId, user.id),
+      ),
+    )
     .limit(1);
   if (!membership) {
     return { error: "Join this community before posting", values };
@@ -180,8 +224,25 @@ export async function createPostAction(
     .limit(1);
   if (!community) return { error: "Community not found", values };
 
+  const uploads = await saveImages(imageFiles(formData), MAX_POST_IMAGES, user.id);
+  if ("error" in uploads) return { error: uploads.error, values };
+
   await db.transaction(async (tx) => {
-    await tx.insert(posts).values({ communityId, authorId: user.id, title, body });
+    const [post] = await tx
+      .insert(posts)
+      .values({ communityId, authorId: user.id, title, body, type })
+      .returning({ id: posts.id });
+    if (uploads.images.length > 0) {
+      await tx
+        .insert(attachments)
+        .values(
+          uploads.images.map((image) => ({
+            ...image,
+            postId: post.id,
+            uploadedBy: user.id,
+          })),
+        );
+    }
     await tx
       .update(communities)
       .set({ postCount: sql`${communities.postCount} + 1` })
@@ -190,6 +251,7 @@ export async function createPostAction(
 
   revalidatePath(`/c/${community.slug}`);
   revalidatePath("/feed");
+  revalidatePath("/");
   return { success: "Post published" };
 }
 
@@ -209,17 +271,31 @@ export async function createCommentAction(
 
   const { postId, body } = parsed.data;
   const [post] = await db
-    .select({ id: posts.id })
+    .select({ id: posts.id, authorId: posts.authorId })
     .from(posts)
     .where(eq(posts.id, postId))
     .limit(1);
   if (!post) return { error: "This post no longer exists", values };
+
+  const uploads = await saveImages(imageFiles(formData), MAX_COMMENT_IMAGES, user.id);
+  if ("error" in uploads) return { error: uploads.error, values };
 
   const commentId = await db.transaction(async (tx) => {
     const [comment] = await tx
       .insert(comments)
       .values({ postId, authorId: user.id, body })
       .returning({ id: comments.id });
+    if (uploads.images.length > 0) {
+      await tx
+        .insert(attachments)
+        .values(
+          uploads.images.map((image) => ({
+            ...image,
+            commentId: comment.id,
+            uploadedBy: user.id,
+          })),
+        );
+    }
     await tx
       .update(posts)
       .set({ commentCount: sql`${posts.commentCount} + 1` })
@@ -230,6 +306,13 @@ export async function createCommentAction(
   await awardReputation(user.id, "helpful_comment", COMMENT_REPUTATION, {
     type: "comment",
     id: String(commentId),
+  });
+  await notify({
+    userId: post.authorId,
+    actorId: user.id,
+    kind: "post_comment",
+    postId,
+    commentId,
   });
 
   revalidatePath(`/p/${postId}`);
@@ -273,8 +356,30 @@ export async function togglePostVoteAction(formData: FormData): Promise<void> {
       type: "post",
       id: String(postId),
     });
+    await notify({
+      userId: post.authorId,
+      actorId: user.id,
+      kind: "post_upvote",
+      postId,
+    });
   }
 
   revalidatePath(`/p/${postId}`);
   revalidatePath("/feed");
+}
+
+/** Authors can take their own post down; the row is kept and hidden everywhere. */
+export async function deleteOwnPostAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const postId = Number(formData.get("postId"));
+  if (!Number.isInteger(postId)) return;
+
+  await db
+    .update(posts)
+    .set({ removedAt: new Date(), removedBy: user.id })
+    .where(and(eq(posts.id, postId), eq(posts.authorId, user.id), isNull(posts.removedAt)));
+
+  revalidatePath("/feed");
+  revalidatePath("/");
+  revalidatePath(`/p/${postId}`);
 }

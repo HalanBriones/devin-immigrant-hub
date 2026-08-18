@@ -8,7 +8,6 @@ export const profileSchema = z.object({
     .toLowerCase()
     .regex(/^[a-z0-9-]{3,24}$/, "Use 3-24 lowercase letters, numbers or hyphens"),
   bio: z.string().trim().max(600, "Keep your bio under 600 characters").optional(),
-  avatarUrl: z.union([z.string().trim().url("Enter a valid image URL"), z.literal("")]).optional(),
   countryOfOrigin: z
     .union([z.string().trim().toUpperCase().length(2, "Select a country"), z.literal("")])
     .optional(),

@@ -15,6 +15,62 @@
       "when": 1786047679781,
       "tag": "0001_old_boomer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786567317344,
+      "tag": "0002_slippery_alex_wilder",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786573664293,
+      "tag": "0003_naive_thor",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786574308676,
+      "tag": "0004_happy_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786655857189,
+      "tag": "0005_dry_runaways",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786656576899,
+      "tag": "0006_bizarre_calypso",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786660799534,
+      "tag": "0007_boring_the_hood",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787072124684,
+      "tag": "0008_odd_brother_voodoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787078724743,
+      "tag": "0009_left_argent",
+      "breakpoints": true
     }
   ]
 }

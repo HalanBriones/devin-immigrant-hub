@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, ne } from "drizzle-orm";
 import { db } from "@/db/client";
 import { sessions, users } from "@/modules/auth/schema";
 import { profiles } from "@/modules/profiles/schema";
 import { expiresIn, generateToken, hashToken } from "@/lib/auth/tokens";
 
 export const SESSION_COOKIE = "ich_session";
-const SESSION_TTL_MINUTES = 60 * 24 * 30;
+const SESSION_TTL_MINUTES = 60 * 24 * 14;
 
 export async function createSession(userId: string): Promise<void> {
   const token = generateToken();
@@ -34,10 +34,34 @@ export async function destroySession(): Promise<void> {
   store.delete(SESSION_COOKIE);
 }
 
+/** Signs out every other device by deleting all sessions except the caller's own. */
+export async function destroyOtherSessions(userId: string): Promise<number> {
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+
+  const removed = await db
+    .delete(sessions)
+    .where(
+      token
+        ? and(eq(sessions.userId, userId), ne(sessions.tokenHash, hashToken(token)))
+        : eq(sessions.userId, userId),
+    )
+    .returning({ id: sessions.id });
+
+  return removed.length;
+}
+
+export async function countSessions(userId: string): Promise<number> {
+  const rows = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(and(eq(sessions.userId, userId), gt(sessions.expiresAt, new Date())));
+  return rows.length;
+}
+
 export type CurrentUser = {
   id: string;
   email: string;
-  role: "user" | "moderator" | "admin";
   emailVerified: boolean;
   phone: string | null;
   phoneVerified: boolean;
@@ -56,7 +80,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .select({
       id: users.id,
       email: users.email,
-      role: users.role,
       emailVerifiedAt: users.emailVerifiedAt,
       phone: users.phone,
       phoneVerifiedAt: users.phoneVerifiedAt,
@@ -82,7 +105,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return {
     id: row.id,
     email: row.email,
-    role: row.role,
     emailVerified: row.emailVerifiedAt !== null,
     phone: row.phone,
     phoneVerified: row.phoneVerifiedAt !== null,

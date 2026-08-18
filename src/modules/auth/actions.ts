@@ -9,11 +9,24 @@ import { profiles } from "@/modules/profiles/schema";
 import { generateUniqueHandle } from "@/modules/profiles/handles";
 import { awardReputation, REPUTATION_REWARDS } from "@/modules/profiles/reputation";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { createSession, destroySession, getCurrentUser } from "@/lib/auth/session";
+import {
+  createSession,
+  destroyOtherSessions,
+  destroySession,
+  getCurrentUser,
+} from "@/lib/auth/session";
 import { expiresIn, generateNumericCode, generateToken, hashToken } from "@/lib/auth/tokens";
 import { emailSender } from "@/lib/notify/email";
 import { smsSender } from "@/lib/notify/sms";
 import { fieldErrorsOf, type ActionState } from "@/lib/forms";
+import { recordAuthEvent } from "@/modules/security/audit";
+import {
+  clearRateLimit,
+  clientIp,
+  isRateLimited,
+  RATE_LIMITS,
+  TOO_MANY_ATTEMPTS,
+} from "@/modules/security/rate-limit";
 import {
   confirmPhoneSchema,
   forgotPasswordSchema,
@@ -66,6 +79,12 @@ export async function registerAction(
     return { fieldErrors: fieldErrorsOf(parsed.error), values: submitted };
   }
 
+  const ip = await clientIp();
+  if (await isRateLimited(RATE_LIMITS.register, [`register:ip:${ip}`])) {
+    await recordAuthEvent({ kind: "register", outcome: "blocked", detail: parsed.data.email });
+    return { error: TOO_MANY_ATTEMPTS, values: submitted };
+  }
+
   const { email, password, displayName } = parsed.data;
   const [existing] = await db
     .select({ id: users.id })
@@ -91,6 +110,7 @@ export async function registerAction(
   });
 
   await issueEmailVerification(userId, email);
+  await recordAuthEvent({ kind: "register", outcome: "success", userId });
   await createSession(userId);
   redirect("/onboarding");
 }
@@ -104,6 +124,13 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     return { fieldErrors: fieldErrorsOf(parsed.error) };
   }
 
+  const ip = await clientIp();
+  const emailBucket = `login:email:${parsed.data.email}`;
+  if (await isRateLimited(RATE_LIMITS.login, [`login:ip:${ip}`, emailBucket])) {
+    await recordAuthEvent({ kind: "login", outcome: "blocked", detail: parsed.data.email });
+    return { error: TOO_MANY_ATTEMPTS };
+  }
+
   const [user] = await db
     .select({ id: users.id, passwordHash: users.passwordHash })
     .from(users)
@@ -112,16 +139,46 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
 
   const valid = user ? await verifyPassword(parsed.data.password, user.passwordHash) : false;
   if (!user || !valid) {
+    await recordAuthEvent({
+      kind: "login",
+      outcome: "failure",
+      userId: user?.id,
+      detail: parsed.data.email,
+    });
     return { error: "Incorrect email or password" };
   }
 
+  await clearRateLimit(emailBucket);
+  await recordAuthEvent({ kind: "login", outcome: "success", userId: user.id });
   await createSession(user.id);
   redirect("/feed");
 }
 
 export async function logoutAction(): Promise<void> {
+  const user = await getCurrentUser();
+  if (user) await recordAuthEvent({ kind: "logout", outcome: "success", userId: user.id });
   await destroySession();
   redirect("/login");
+}
+
+export async function signOutOtherSessionsAction(): Promise<ActionState> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "You must be signed in" };
+
+  const revoked = await destroyOtherSessions(user.id);
+  await recordAuthEvent({
+    kind: "sessions_revoked",
+    outcome: "success",
+    userId: user.id,
+    detail: `${revoked} session(s)`,
+  });
+
+  return {
+    success:
+      revoked > 0
+        ? `Signed out ${revoked} other ${revoked === 1 ? "device" : "devices"}`
+        : "No other devices were signed in",
+  };
 }
 
 export async function resendEmailVerificationAction(): Promise<ActionState> {
@@ -129,7 +186,23 @@ export async function resendEmailVerificationAction(): Promise<ActionState> {
   if (!user) return { error: "You must be signed in" };
   if (user.emailVerified) return { success: "Your email is already verified" };
 
+  if (
+    await isRateLimited(RATE_LIMITS.emailVerification, [`email-verification:user:${user.id}`])
+  ) {
+    await recordAuthEvent({
+      kind: "email_verification_sent",
+      outcome: "blocked",
+      userId: user.id,
+    });
+    return { error: TOO_MANY_ATTEMPTS };
+  }
+
   await issueEmailVerification(user.id, user.email);
+  await recordAuthEvent({
+    kind: "email_verification_sent",
+    outcome: "success",
+    userId: user.id,
+  });
   return { success: "Verification link sent — check your inbox" };
 }
 
@@ -172,6 +245,7 @@ export async function verifyEmailToken(token: string): Promise<boolean> {
       id: record.id,
     });
   }
+  await recordAuthEvent({ kind: "email_verified", outcome: "success", userId: record.userId });
   return true;
 }
 
@@ -185,6 +259,11 @@ export async function startPhoneVerificationAction(
   const parsed = startPhoneVerificationSchema.safeParse({ phone: formData.get("phone") });
   if (!parsed.success) {
     return { fieldErrors: fieldErrorsOf(parsed.error) };
+  }
+
+  if (await isRateLimited(RATE_LIMITS.phoneCodeRequest, [`phone-code:user:${user.id}`])) {
+    await recordAuthEvent({ kind: "phone_code_sent", outcome: "blocked", userId: user.id });
+    return { error: TOO_MANY_ATTEMPTS };
   }
 
   const code = generateNumericCode();
@@ -207,7 +286,10 @@ export async function startPhoneVerificationAction(
     body: `Your Immigrant Community Hub verification code is ${code}`,
   });
 
-  revalidatePath("/settings/verification");
+  await clearRateLimit(`phone-confirm:user:${user.id}`);
+  await recordAuthEvent({ kind: "phone_code_sent", outcome: "success", userId: user.id });
+
+  if (user.handle) revalidatePath(`/u/${user.handle}`);
   return { success: "We sent you a 6-digit code" };
 }
 
@@ -221,6 +303,22 @@ export async function confirmPhoneVerificationAction(
   const parsed = confirmPhoneSchema.safeParse({ code: formData.get("code") });
   if (!parsed.success) {
     return { fieldErrors: fieldErrorsOf(parsed.error) };
+  }
+
+  const attemptBucket = `phone-confirm:user:${user.id}`;
+  if (await isRateLimited(RATE_LIMITS.phoneCodeAttempt, [attemptBucket])) {
+    await db
+      .update(verificationTokens)
+      .set({ consumedAt: new Date() })
+      .where(
+        and(
+          eq(verificationTokens.userId, user.id),
+          eq(verificationTokens.kind, "phone"),
+          isNull(verificationTokens.consumedAt),
+        ),
+      );
+    await recordAuthEvent({ kind: "phone_verified", outcome: "blocked", userId: user.id });
+    return { error: "Too many wrong codes. Request a new one." };
   }
 
   const [record] = await db
@@ -237,6 +335,7 @@ export async function confirmPhoneVerificationAction(
     )
     .limit(1);
   if (!record) {
+    await recordAuthEvent({ kind: "phone_verified", outcome: "failure", userId: user.id });
     return { error: "That code is invalid or has expired" };
   }
 
@@ -258,7 +357,10 @@ export async function confirmPhoneVerificationAction(
     });
   }
 
-  revalidatePath("/settings/verification");
+  await clearRateLimit(attemptBucket);
+  await recordAuthEvent({ kind: "phone_verified", outcome: "success", userId: user.id });
+
+  if (user.handle) revalidatePath(`/u/${user.handle}`);
   return { success: "Phone number verified" };
 }
 
@@ -271,13 +373,26 @@ export async function forgotPasswordAction(
     return { fieldErrors: fieldErrorsOf(parsed.error) };
   }
 
+  const resetIp = await clientIp();
+  const limited = await isRateLimited(RATE_LIMITS.passwordReset, [
+    `password-reset:ip:${resetIp}`,
+    `password-reset:email:${parsed.data.email}`,
+  ]);
+
   const [user] = await db
     .select({ id: users.id })
     .from(users)
     .where(and(eq(users.email, parsed.data.email), isNull(users.deletedAt)))
     .limit(1);
 
-  if (user) {
+  await recordAuthEvent({
+    kind: "password_reset_requested",
+    outcome: limited ? "blocked" : "success",
+    userId: user?.id,
+    detail: parsed.data.email,
+  });
+
+  if (user && !limited) {
     const token = generateToken();
     await db.insert(verificationTokens).values({
       userId: user.id,
@@ -336,6 +451,12 @@ export async function resetPasswordAction(
       .where(eq(verificationTokens.id, record.id));
     await tx.update(users).set({ passwordHash }).where(eq(users.id, record.userId));
     await tx.delete(sessions).where(eq(sessions.userId, record.userId));
+  });
+
+  await recordAuthEvent({
+    kind: "password_reset_completed",
+    outcome: "success",
+    userId: record.userId,
   });
 
   redirect("/login?reset=1");

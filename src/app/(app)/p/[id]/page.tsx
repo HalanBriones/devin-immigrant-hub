@@ -1,32 +1,43 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getPost, isMember, listComments } from "@/modules/communities/queries";
 import { getCommunityBySlug } from "@/modules/communities/queries";
+import { AttachmentGallery } from "@/modules/communities/ui/attachment-gallery";
 import { CommentForm } from "@/modules/communities/ui/comment-form";
 import { VoteButton } from "@/modules/communities/ui/post-card";
+import { PostTypeBadge } from "@/modules/communities/ui/post-type-badge";
+import { SignUpPrompt } from "@/modules/communities/ui/sign-up-prompt";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { deleteOwnPostAction } from "@/modules/communities/actions";
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const postId = Number(id);
   if (!Number.isInteger(postId)) notFound();
 
-  const user = await requireUser();
-  const post = await getPost(postId, user.id);
+  const user = await getCurrentUser();
+  const post = await getPost(postId, user?.id ?? null);
   if (!post) notFound();
 
-  const community = await getCommunityBySlug(post.communitySlug, user.id);
+  const community = await getCommunityBySlug(post.communitySlug, user?.id ?? null);
   const [comments, member] = await Promise.all([
     listComments(postId),
-    community ? isMember(community.id, user.id) : Promise.resolve(false),
+    community && user ? isMember(community.id, user.id) : Promise.resolve(false),
   ]);
 
   return (
     <div className="flex flex-col gap-6">
       <article className="card flex gap-4">
-        <VoteButton postId={post.id} score={post.score} voted={post.viewerVoted} />
+        <VoteButton
+          postId={post.id}
+          score={post.score}
+          voted={post.viewerVoted}
+          signedIn={Boolean(user)}
+        />
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+            <PostTypeBadge type={post.type} />
             <Link href={`/c/${post.communitySlug}`} className="font-medium text-sky-700">
               {post.communityName}
             </Link>
@@ -39,6 +50,13 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">{post.title}</h1>
           <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{post.body}</p>
+          <AttachmentGallery images={post.images} alt={`Photo attached to ${post.title}`} />
+          {user?.handle === post.authorHandle ? (
+            <form action={deleteOwnPostAction}>
+              <input type="hidden" name="postId" value={post.id} />
+              <SubmitButton label="Delete post" variant="secondary" />
+            </form>
+          ) : null}
         </div>
       </article>
 
@@ -57,10 +75,18 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
               <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-slate-700">
                 {comment.body}
               </p>
+              <div className="mt-2">
+                <AttachmentGallery
+                  images={comment.images}
+                  alt={`Photo attached by ${comment.authorName}`}
+                />
+              </div>
             </li>
           ))}
         </ul>
-        {member ? (
+        {!user ? (
+          <SignUpPrompt action="join the conversation" />
+        ) : member ? (
           <CommentForm postId={post.id} />
         ) : (
           <p className="text-sm text-slate-500">
