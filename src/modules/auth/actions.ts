@@ -207,7 +207,7 @@ export async function startPhoneVerificationAction(
     body: `Your Immigrant Community Hub verification code is ${code}`,
   });
 
-  revalidatePath("/settings/verification");
+  if (user.handle) revalidatePath(`/u/${user.handle}`);
   return { success: "We sent you a 6-digit code" };
 }
 
@@ -258,7 +258,7 @@ export async function confirmPhoneVerificationAction(
     });
   }
 
-  revalidatePath("/settings/verification");
+  if (user.handle) revalidatePath(`/u/${user.handle}`);
   return { success: "Phone number verified" };
 }
 

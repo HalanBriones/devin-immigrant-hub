@@ -33,17 +33,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Marketplace
             </Link>
             {user ? (
-              <>
-                <Link
-                  href={user.handle ? `/u/${user.handle}` : "/onboarding"}
-                  className="nav-link"
-                >
-                  Profile
-                </Link>
-                <Link href="/settings/verification" className="nav-link">
-                  Verification
-                </Link>
-              </>
+              <Link
+                href={user.handle ? `/u/${user.handle}` : "/onboarding"}
+                className="nav-link"
+              >
+                Profile
+              </Link>
             ) : null}
           </nav>
           {user ? (

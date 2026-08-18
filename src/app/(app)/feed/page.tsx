@@ -49,9 +49,10 @@ export default async function FeedPage() {
   ]);
 
   const editProfileHref = profile ? `/u/${profile.handle}?edit=1` : "/onboarding";
+  const verifyHref = profile ? `/u/${profile.handle}#verification` : "/onboarding";
   const steps = [
-    { label: "Verify your email", done: user.emailVerified, href: "/settings/verification" },
-    { label: "Verify your phone number", done: user.phoneVerified, href: "/settings/verification" },
+    { label: "Verify your email", done: user.emailVerified, href: verifyHref },
+    { label: "Verify your phone number", done: user.phoneVerified, href: verifyHref },
     {
       label: "Add your city and country of origin",
       done: Boolean(profile?.cityId && profile?.countryOfOrigin),

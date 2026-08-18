@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ReputationBadge, VerificationBadge } from "@/components/ui/badge";
 import { getCurrentUser } from "@/lib/auth/session";
 import { countryName } from "@/lib/countries";
+import { VerificationPanel } from "@/modules/auth/ui/verification-panel";
 import { getProfileByHandle, listInterests, listLanguages } from "@/modules/profiles/queries";
 import { ProfileFormLoader } from "@/modules/profiles/ui/profile-form-loader";
 
@@ -121,10 +122,10 @@ export default async function ProfilePage({
         )}
       </section>
 
-      {isOwner ? (
-        <section className="card flex flex-col gap-4">
+      {isOwner && user ? (
+        <>
           {editing ? (
-            <>
+            <section className="card flex flex-col gap-4">
               <div>
                 <h2 className="text-lg font-semibold">Edit your profile</h2>
                 <p className="mt-1 text-sm text-slate-600">
@@ -133,19 +134,25 @@ export default async function ProfilePage({
                 </p>
               </div>
               <ProfileFormLoader />
-            </>
-          ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <p className="text-slate-600">
-                Only you see this panel. Keep your details current so newcomers know who they
-                are talking to.
+            </section>
+          ) : null}
+
+          <section id="verification" className="card flex flex-col gap-4 scroll-mt-20">
+            <div>
+              <h2 className="text-lg font-semibold">Verification</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Only you see this section. Verified members earn trust badges and reputation
+                points. In development, codes and links are printed to the server console.
               </p>
-              <Link href="/settings/verification" className="font-medium text-sky-700">
-                Verification settings
-              </Link>
             </div>
-          )}
-        </section>
+            <VerificationPanel
+              email={user.email}
+              emailVerified={user.emailVerified}
+              phone={user.phone}
+              phoneVerified={user.phoneVerified}
+            />
+          </section>
+        </>
       ) : null}
     </div>
   );
