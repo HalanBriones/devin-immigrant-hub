@@ -34,18 +34,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Link>
             {user ? (
               <>
-                <Link href="/settings/profile" className="nav-link">
+                <Link
+                  href={user.handle ? `/u/${user.handle}` : "/onboarding"}
+                  className="nav-link"
+                >
                   Profile
                 </Link>
                 <Link href="/settings/verification" className="nav-link">
                   Verification
                 </Link>
-                {user.handle ? (
-                  <Link href={`/u/${user.handle}`} className="nav-link">
-                    <span className="sm:hidden">Public page</span>
-                    <span className="hidden sm:inline">My public page</span>
-                  </Link>
-                ) : null}
               </>
             ) : null}
           </nav>

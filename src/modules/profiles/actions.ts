@@ -76,7 +76,7 @@ export async function updateProfileAction(
     }
   });
 
-  revalidatePath("/settings/profile");
   revalidatePath(`/u/${input.handle}`);
+  revalidatePath("/feed");
   return { success: "Profile saved" };
 }

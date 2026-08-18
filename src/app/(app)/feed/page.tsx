@@ -48,15 +48,16 @@ export default async function FeedPage() {
     listJoinedCommunities(user.id),
   ]);
 
+  const editProfileHref = profile ? `/u/${profile.handle}?edit=1` : "/onboarding";
   const steps = [
     { label: "Verify your email", done: user.emailVerified, href: "/settings/verification" },
     { label: "Verify your phone number", done: user.phoneVerified, href: "/settings/verification" },
     {
       label: "Add your city and country of origin",
       done: Boolean(profile?.cityId && profile?.countryOfOrigin),
-      href: "/settings/profile",
+      href: editProfileHref,
     },
-    { label: "Write a short bio", done: Boolean(profile?.bio), href: "/settings/profile" },
+    { label: "Write a short bio", done: Boolean(profile?.bio), href: editProfileHref },
     { label: "Join a community", done: joined.length > 0, href: "/communities" },
   ];
   const setupDone = steps.every((step) => step.done);
