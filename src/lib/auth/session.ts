@@ -62,7 +62,6 @@ export async function countSessions(userId: string): Promise<number> {
 export type CurrentUser = {
   id: string;
   email: string;
-  role: "user" | "moderator" | "admin";
   emailVerified: boolean;
   phone: string | null;
   phoneVerified: boolean;
@@ -81,7 +80,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .select({
       id: users.id,
       email: users.email,
-      role: users.role,
       emailVerifiedAt: users.emailVerifiedAt,
       phone: users.phone,
       phoneVerifiedAt: users.phoneVerifiedAt,
@@ -107,7 +105,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return {
     id: row.id,
     email: row.email,
-    role: row.role,
     emailVerified: row.emailVerifiedAt !== null,
     phone: row.phone,
     phoneVerified: row.phoneVerifiedAt !== null,

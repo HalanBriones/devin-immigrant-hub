@@ -10,6 +10,7 @@ import { fieldErrorsOf, type ActionState } from "@/lib/forms";
 import { saveImages } from "@/lib/uploads";
 import { attachments } from "@/modules/attachments/schema";
 import { eventAttendees, events } from "@/modules/events/schema";
+import { notify } from "@/modules/notifications/notify";
 import { EVENT_TAGS, MAX_EVENT_IMAGES, MAX_EVENT_TAGS } from "@/modules/events/tags";
 
 const eventSchema = z.object({
@@ -108,19 +109,35 @@ export async function joinEventAction(formData: FormData): Promise<void> {
   const eventId = Number(formData.get("eventId"));
   if (!Number.isInteger(eventId)) return;
 
-  await db.transaction(async (tx) => {
+  const joined = await db.transaction(async (tx) => {
     const inserted = await tx
       .insert(eventAttendees)
       .values({ eventId, userId: user.id })
       .onConflictDoNothing()
       .returning({ userId: eventAttendees.userId });
-    if (inserted.length > 0) {
-      await tx
-        .update(events)
-        .set({ attendeeCount: sql`${events.attendeeCount} + 1` })
-        .where(eq(events.id, eventId));
-    }
+    if (inserted.length === 0) return false;
+    await tx
+      .update(events)
+      .set({ attendeeCount: sql`${events.attendeeCount} + 1` })
+      .where(eq(events.id, eventId));
+    return true;
   });
+
+  if (joined) {
+    const [event] = await db
+      .select({ hostId: events.hostId })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
+    if (event) {
+      await notify({
+        userId: event.hostId,
+        actorId: user.id,
+        kind: "event_rsvp",
+        eventId,
+      });
+    }
+  }
 
   revalidatePath("/events");
   revalidatePath(`/events/${eventId}`);

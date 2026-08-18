@@ -12,9 +12,7 @@ export type AuthEventKind =
   | "email_verification_sent"
   | "phone_code_sent"
   | "phone_verified"
-  | "sessions_revoked"
-  | "content_removed"
-  | "content_reported";
+  | "sessions_revoked";
 
 export type AuthEventOutcome = "success" | "failure" | "blocked";
 

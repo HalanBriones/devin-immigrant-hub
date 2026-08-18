@@ -11,7 +11,6 @@ import {
 import { formatPrice } from "@/modules/marketplace/categories";
 import { getListing } from "@/modules/marketplace/queries";
 import { CategoryBadge, SellerLine } from "@/modules/marketplace/ui/listing-card";
-import { ReportButton } from "@/modules/moderation/ui/report-button";
 
 export default async function ListingPage({
   params,
@@ -147,10 +146,6 @@ export default async function ListingPage({
               variant="secondary"
             />
           </form>
-        ) : null}
-
-        {user && !owned ? (
-          <ReportButton targetType="listing" targetId={listing.id} />
         ) : null}
       </section>
     </div>

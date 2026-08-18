@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -15,6 +15,7 @@ import {
   COMMENT_REPUTATION,
   POST_UPVOTE_REPUTATION,
 } from "@/modules/communities/reputation";
+import { notify } from "@/modules/notifications/notify";
 import { awardReputation } from "@/modules/profiles/reputation";
 import { attachments } from "@/modules/attachments/schema";
 import {
@@ -270,7 +271,7 @@ export async function createCommentAction(
 
   const { postId, body } = parsed.data;
   const [post] = await db
-    .select({ id: posts.id })
+    .select({ id: posts.id, authorId: posts.authorId })
     .from(posts)
     .where(eq(posts.id, postId))
     .limit(1);
@@ -305,6 +306,13 @@ export async function createCommentAction(
   await awardReputation(user.id, "helpful_comment", COMMENT_REPUTATION, {
     type: "comment",
     id: String(commentId),
+  });
+  await notify({
+    userId: post.authorId,
+    actorId: user.id,
+    kind: "post_comment",
+    postId,
+    commentId,
   });
 
   revalidatePath(`/p/${postId}`);
@@ -348,8 +356,30 @@ export async function togglePostVoteAction(formData: FormData): Promise<void> {
       type: "post",
       id: String(postId),
     });
+    await notify({
+      userId: post.authorId,
+      actorId: user.id,
+      kind: "post_upvote",
+      postId,
+    });
   }
 
   revalidatePath(`/p/${postId}`);
   revalidatePath("/feed");
+}
+
+/** Authors can take their own post down; the row is kept and hidden everywhere. */
+export async function deleteOwnPostAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const postId = Number(formData.get("postId"));
+  if (!Number.isInteger(postId)) return;
+
+  await db
+    .update(posts)
+    .set({ removedAt: new Date(), removedBy: user.id })
+    .where(and(eq(posts.id, postId), eq(posts.authorId, user.id), isNull(posts.removedAt)));
+
+  revalidatePath("/feed");
+  revalidatePath("/");
+  revalidatePath(`/p/${postId}`);
 }

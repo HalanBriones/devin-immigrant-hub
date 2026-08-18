@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
 import { logoutAction } from "@/modules/auth/actions";
-import { isModerator } from "@/modules/moderation/roles";
+import { NotificationBell } from "@/modules/notifications/ui/notification-bell";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -34,17 +34,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Marketplace
             </Link>
             {user ? (
-              <Link
-                href={user.handle ? `/u/${user.handle}` : "/onboarding"}
-                className="nav-link"
-              >
-                Profile
-              </Link>
-            ) : null}
-            {user && isModerator(user) ? (
-              <Link href="/moderation" className="nav-link">
-                Moderation
-              </Link>
+              <>
+                <Link
+                  href={user.handle ? `/u/${user.handle}` : "/onboarding"}
+                  className="nav-link"
+                >
+                  Profile
+                </Link>
+                <NotificationBell userId={user.id} />
+              </>
             ) : null}
           </nav>
           {user ? (

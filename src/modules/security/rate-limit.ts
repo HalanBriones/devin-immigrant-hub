@@ -12,7 +12,6 @@ export const RATE_LIMITS = {
   emailVerification: { limit: 5, windowMinutes: 60 },
   phoneCodeRequest: { limit: 5, windowMinutes: 60 },
   phoneCodeAttempt: { limit: 5, windowMinutes: 15 },
-  report: { limit: 20, windowMinutes: 60 },
 } as const satisfies Record<string, RateLimitRule>;
 
 const RETENTION_MINUTES = 24 * 60;
