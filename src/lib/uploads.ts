@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { MAX_IMAGE_BYTES } from "@/lib/upload-limits";
+import { eq, gt, sum, and } from "drizzle-orm";
+import { db } from "@/db/client";
+import { attachments } from "@/modules/attachments/schema";
+import { MAX_IMAGE_BYTES, UPLOAD_QUOTA_BYTES, UPLOAD_QUOTA_DAYS } from "@/lib/upload-limits";
 
 export const UPLOAD_DIR =
   process.env.UPLOAD_DIR ?? path.join(process.cwd(), "var", "uploads");
@@ -70,15 +73,35 @@ export function imageUrl(fileName: string): string {
 
 export type SaveImagesResult = { images: SavedImage[] } | { error: string };
 
+/** Bytes a user has uploaded inside the rolling quota window. */
+export async function uploadedBytes(userId: string): Promise<number> {
+  const windowStart = new Date(Date.now() - UPLOAD_QUOTA_DAYS * 24 * 60 * 60_000);
+  const [row] = await db
+    .select({ total: sum(attachments.byteSize) })
+    .from(attachments)
+    .where(
+      and(eq(attachments.uploadedBy, userId), gt(attachments.createdAt, windowStart)),
+    );
+  return Number(row?.total ?? 0);
+}
+
 export async function saveImages(
   files: File[],
   limit: number,
+  userId: string,
 ): Promise<SaveImagesResult> {
   const present = files.filter((file) => file.size > 0);
   if (present.length === 0) return { images: [] };
   if (present.length > limit) {
     return {
       error: `Attach at most ${limit} ${limit === 1 ? "image" : "images"}`,
+    };
+  }
+
+  const incoming = present.reduce((total, file) => total + file.size, 0);
+  if ((await uploadedBytes(userId)) + incoming > UPLOAD_QUOTA_BYTES) {
+    return {
+      error: `Upload quota reached (${UPLOAD_QUOTA_BYTES / (1024 * 1024)} MB per ${UPLOAD_QUOTA_DAYS} days). Try again later.`,
     };
   }
 

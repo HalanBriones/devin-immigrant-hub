@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { imageUrl } from "@/lib/uploads";
 import { attachments } from "@/modules/attachments/schema";
@@ -85,7 +85,7 @@ export async function listUpcomingEvents(
     .select(eventSelection(viewerId))
     .from(events)
     .innerJoin(profiles, eq(profiles.userId, events.hostId))
-    .where(gte(events.startsAt, sql`now()`))
+    .where(and(gte(events.startsAt, sql`now()`), isNull(events.removedAt)))
     .orderBy(asc(events.startsAt))
     .limit(50);
   return toSummaries(rows);
@@ -98,7 +98,7 @@ export async function listPastEvents(
     .select(eventSelection(viewerId))
     .from(events)
     .innerJoin(profiles, eq(profiles.userId, events.hostId))
-    .where(lt(events.startsAt, sql`now()`))
+    .where(and(lt(events.startsAt, sql`now()`), isNull(events.removedAt)))
     .orderBy(desc(events.startsAt))
     .limit(10);
   return toSummaries(rows);
@@ -112,7 +112,7 @@ export async function getEvent(
     .select(eventSelection(viewerId))
     .from(events)
     .innerJoin(profiles, eq(profiles.userId, events.hostId))
-    .where(eq(events.id, id))
+    .where(and(eq(events.id, id), isNull(events.removedAt)))
     .limit(1);
   if (!row) return null;
   const [summary] = await toSummaries([row]);

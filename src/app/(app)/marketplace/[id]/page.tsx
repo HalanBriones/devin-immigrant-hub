@@ -11,6 +11,7 @@ import {
 import { formatPrice } from "@/modules/marketplace/categories";
 import { getListing } from "@/modules/marketplace/queries";
 import { CategoryBadge, SellerLine } from "@/modules/marketplace/ui/listing-card";
+import { ReportButton } from "@/modules/moderation/ui/report-button";
 
 export default async function ListingPage({
   params,
@@ -88,7 +89,7 @@ export default async function ListingPage({
       <section className="card flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-slate-900">Seller</h2>
         <SellerLine listing={listing} />
-        {user ? (
+        {user && user.emailVerified ? (
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             {listing.contactEmail ? (
               <div>
@@ -114,6 +115,16 @@ export default async function ListingPage({
               </div>
             ) : null}
           </dl>
+        ) : user ? (
+          <p className="text-sm text-slate-600">
+            Verify your email to see the seller&apos;s contact details.{" "}
+            <Link
+              href={user.handle ? `/u/${user.handle}#verification` : "/onboarding"}
+              className="font-medium text-sky-700"
+            >
+              Verify now
+            </Link>
+          </p>
         ) : (
           <SignUpPrompt action="see the seller's contact details" />
         )}
@@ -136,6 +147,10 @@ export default async function ListingPage({
               variant="secondary"
             />
           </form>
+        ) : null}
+
+        {user && !owned ? (
+          <ReportButton targetType="listing" targetId={listing.id} />
         ) : null}
       </section>
     </div>

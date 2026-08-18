@@ -62,7 +62,7 @@ export async function createEventAction(
     return { fieldErrors: fieldErrorsOf(parsed.error), values };
   }
 
-  const uploads = await saveImages(imageFiles(formData), MAX_EVENT_IMAGES);
+  const uploads = await saveImages(imageFiles(formData), MAX_EVENT_IMAGES, user.id);
   if ("error" in uploads) return { error: uploads.error, values };
 
   let eventId = 0;
@@ -89,7 +89,13 @@ export async function createEventAction(
     if (uploads.images.length > 0) {
       await tx
         .insert(attachments)
-        .values(uploads.images.map((image) => ({ ...image, eventId: event.id })));
+        .values(
+          uploads.images.map((image) => ({
+            ...image,
+            eventId: event.id,
+            uploadedBy: user.id,
+          })),
+        );
     }
   });
 

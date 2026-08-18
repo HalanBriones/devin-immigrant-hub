@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db/client";
 import { imageUrl } from "@/lib/uploads";
 import { attachments } from "@/modules/attachments/schema";
@@ -115,7 +115,7 @@ function baseQuery() {
 export async function listListings(
   filters: ListingFilters,
 ): Promise<ListingSummary[]> {
-  const conditions: SQL[] = [eq(listings.status, "active")];
+  const conditions: SQL[] = [eq(listings.status, "active"), isNull(listings.removedAt)];
   if (filters.category) {
     conditions.push(eq(listings.category, filters.category));
   }
@@ -141,7 +141,9 @@ export async function listListings(
 }
 
 export async function getListing(id: number): Promise<ListingSummary | null> {
-  const [row] = await baseQuery().where(eq(listings.id, id)).limit(1);
+  const [row] = await baseQuery()
+    .where(and(eq(listings.id, id), isNull(listings.removedAt)))
+    .limit(1);
   if (!row) return null;
   const [summary] = await toSummaries([row]);
   return summary ?? null;
@@ -151,7 +153,7 @@ export async function listListingsBySeller(
   sellerId: string,
 ): Promise<ListingSummary[]> {
   const rows = await baseQuery()
-    .where(eq(listings.sellerId, sellerId))
+    .where(and(eq(listings.sellerId, sellerId), isNull(listings.removedAt)))
     .orderBy(desc(listings.createdAt))
     .limit(60);
   return toSummaries(rows);

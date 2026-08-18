@@ -89,6 +89,10 @@ export const posts = pgTable(
     body: text("body").notNull(),
     type: postType("type").notNull().default("info"),
     score: integer("score").notNull().default(0),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedBy: uuid("removed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     commentCount: integer("comment_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -115,6 +119,10 @@ export const comments = pgTable(
       .notNull()
       .references(() => profiles.userId, { onDelete: "cascade" }),
     body: text("body").notNull(),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedBy: uuid("removed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

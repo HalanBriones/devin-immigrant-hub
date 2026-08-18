@@ -4,4 +4,6 @@ export * from "@/modules/communities/schema";
 export * from "@/modules/events/schema";
 export * from "@/modules/geo/schema";
 export * from "@/modules/marketplace/schema";
+export * from "@/modules/moderation/schema";
 export * from "@/modules/profiles/schema";
+export * from "@/modules/security/schema";

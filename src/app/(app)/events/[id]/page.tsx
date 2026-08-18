@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { AttachmentGallery } from "@/modules/communities/ui/attachment-gallery";
+import { ReportButton } from "@/modules/moderation/ui/report-button";
 import { SignUpPrompt } from "@/modules/communities/ui/sign-up-prompt";
 import { getEvent, listEventAttendees } from "@/modules/events/queries";
 import { formatEventDate } from "@/modules/events/ui/event-card";
@@ -80,6 +81,9 @@ export default async function EventPage({
           </ul>
         ) : null}
         {user ? null : <SignUpPrompt action="join events and meet people" />}
+        {user && user.handle !== event.hostHandle ? (
+          <ReportButton targetType="event" targetId={event.id} />
+        ) : null}
       </section>
     </div>
   );

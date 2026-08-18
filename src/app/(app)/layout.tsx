@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/session";
 import { logoutAction } from "@/modules/auth/actions";
+import { isModerator } from "@/modules/moderation/roles";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 className="nav-link"
               >
                 Profile
+              </Link>
+            ) : null}
+            {user && isModerator(user) ? (
+              <Link href="/moderation" className="nav-link">
+                Moderation
               </Link>
             ) : null}
           </nav>

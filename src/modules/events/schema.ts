@@ -8,6 +8,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { users } from "@/modules/auth/schema";
 import { profiles } from "@/modules/profiles/schema";
 
 export const events = pgTable(
@@ -24,6 +25,10 @@ export const events = pgTable(
     cityName: text("city_name").notNull(),
     tags: text("tags").array().notNull().default([]),
     attendeeCount: integer("attendee_count").notNull().default(0),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedBy: uuid("removed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

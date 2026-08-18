@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReputationBadge, VerificationBadge } from "@/components/ui/badge";
-import { getCurrentUser } from "@/lib/auth/session";
+import { countSessions, getCurrentUser } from "@/lib/auth/session";
 import { countryName } from "@/lib/countries";
+import { SecurityPanel } from "@/modules/auth/ui/security-panel";
 import { VerificationPanel } from "@/modules/auth/ui/verification-panel";
 import { getProfileByHandle, listInterests, listLanguages } from "@/modules/profiles/queries";
 import { ProfileFormLoader } from "@/modules/profiles/ui/profile-form-loader";
@@ -151,6 +152,7 @@ export default async function ProfilePage({
               phone={user.phone}
               phoneVerified={user.phoneVerified}
             />
+            <SecurityPanel activeSessions={await countSessions(user.id)} />
           </section>
         </>
       ) : null}

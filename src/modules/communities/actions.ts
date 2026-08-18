@@ -223,7 +223,7 @@ export async function createPostAction(
     .limit(1);
   if (!community) return { error: "Community not found", values };
 
-  const uploads = await saveImages(imageFiles(formData), MAX_POST_IMAGES);
+  const uploads = await saveImages(imageFiles(formData), MAX_POST_IMAGES, user.id);
   if ("error" in uploads) return { error: uploads.error, values };
 
   await db.transaction(async (tx) => {
@@ -234,7 +234,13 @@ export async function createPostAction(
     if (uploads.images.length > 0) {
       await tx
         .insert(attachments)
-        .values(uploads.images.map((image) => ({ ...image, postId: post.id })));
+        .values(
+          uploads.images.map((image) => ({
+            ...image,
+            postId: post.id,
+            uploadedBy: user.id,
+          })),
+        );
     }
     await tx
       .update(communities)
@@ -270,7 +276,7 @@ export async function createCommentAction(
     .limit(1);
   if (!post) return { error: "This post no longer exists", values };
 
-  const uploads = await saveImages(imageFiles(formData), MAX_COMMENT_IMAGES);
+  const uploads = await saveImages(imageFiles(formData), MAX_COMMENT_IMAGES, user.id);
   if ("error" in uploads) return { error: uploads.error, values };
 
   const commentId = await db.transaction(async (tx) => {
@@ -282,7 +288,11 @@ export async function createCommentAction(
       await tx
         .insert(attachments)
         .values(
-          uploads.images.map((image) => ({ ...image, commentId: comment.id })),
+          uploads.images.map((image) => ({
+            ...image,
+            commentId: comment.id,
+            uploadedBy: user.id,
+          })),
         );
     }
     await tx

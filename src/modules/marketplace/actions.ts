@@ -85,7 +85,7 @@ export async function createListingAction(
     };
   }
 
-  const uploads = await saveImages(imageFiles(formData), MAX_LISTING_IMAGES);
+  const uploads = await saveImages(imageFiles(formData), MAX_LISTING_IMAGES, user.id);
   if ("error" in uploads) return { error: uploads.error, values };
 
   let listingId = 0;
@@ -114,7 +114,11 @@ export async function createListingAction(
       await tx
         .insert(attachments)
         .values(
-          uploads.images.map((image) => ({ ...image, listingId: listing.id })),
+          uploads.images.map((image) => ({
+            ...image,
+            listingId: listing.id,
+            uploadedBy: user.id,
+          })),
         );
     }
   });

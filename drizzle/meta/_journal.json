@@ -57,6 +57,13 @@
       "when": 1786660799534,
       "tag": "0007_boring_the_hood",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787072124684,
+      "tag": "0008_odd_brother_voodoo",
+      "breakpoints": true
     }
   ]
 }

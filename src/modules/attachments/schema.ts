@@ -7,7 +7,9 @@ import {
   serial,
   text,
   timestamp,
+  uuid,
 } from "drizzle-orm/pg-core";
+import { users } from "@/modules/auth/schema";
 import { comments, posts } from "@/modules/communities/schema";
 import { events } from "@/modules/events/schema";
 import { listings } from "@/modules/marketplace/schema";
@@ -33,6 +35,12 @@ export const attachments = pgTable(
     listingId: integer("listing_id").references(() => listings.id, {
       onDelete: "cascade",
     }),
+    avatarUserId: uuid("avatar_user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     fileName: text("file_name").notNull().unique(),
     mimeType: text("mime_type").notNull(),
     byteSize: integer("byte_size").notNull(),
@@ -45,9 +53,10 @@ export const attachments = pgTable(
     index("attachments_comment_idx").on(table.commentId),
     index("attachments_event_idx").on(table.eventId),
     index("attachments_listing_idx").on(table.listingId),
+    index("attachments_uploader_idx").on(table.uploadedBy),
     check(
       "attachments_single_owner",
-      sql`num_nonnulls(${table.postId}, ${table.commentId}, ${table.eventId}, ${table.listingId}) = 1`,
+      sql`num_nonnulls(${table.postId}, ${table.commentId}, ${table.eventId}, ${table.listingId}, ${table.avatarUserId}) = 1`,
     ),
   ],
 );

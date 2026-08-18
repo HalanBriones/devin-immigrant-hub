@@ -5,6 +5,7 @@ import { Alert } from "@/components/ui/alert";
 import { Field, inputClass } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { COUNTRIES } from "@/lib/countries";
+import { ACCEPTED_IMAGE_TYPES } from "@/lib/upload-limits";
 import { updateProfileAction } from "@/modules/profiles/actions";
 import type { PublicProfile } from "@/modules/profiles/queries";
 
@@ -68,15 +69,34 @@ export function ProfileForm({
         />
       </Field>
 
-      <Field label="Profile photo URL" htmlFor="avatarUrl" error={state.fieldErrors?.avatarUrl}>
-        <input
-          id="avatarUrl"
-          name="avatarUrl"
-          defaultValue={profile.avatarUrl ?? ""}
-          className={inputClass}
-          placeholder="https://…"
-        />
+      <Field
+        label="Profile photo"
+        htmlFor="avatar"
+        hint="JPEG, PNG, GIF or WebP, up to 5 MB. Uploading replaces your current photo."
+        error={state.fieldErrors?.avatar}
+      >
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={profile.avatarUrl ?? "/avatar-placeholder.svg"}
+            alt=""
+            className="h-12 w-12 rounded-full border border-slate-200 object-cover"
+          />
+          <input
+            id="avatar"
+            name="avatar"
+            type="file"
+            accept={ACCEPTED_IMAGE_TYPES}
+            className="text-sm text-slate-600"
+          />
+        </div>
       </Field>
+      {profile.avatarUrl ? (
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input type="checkbox" name="removeAvatar" value="1" />
+          Remove my current photo
+        </label>
+      ) : null}
 
       <div className="grid gap-5 sm:grid-cols-3">
         <Field

@@ -8,6 +8,9 @@ import { CommentForm } from "@/modules/communities/ui/comment-form";
 import { VoteButton } from "@/modules/communities/ui/post-card";
 import { PostTypeBadge } from "@/modules/communities/ui/post-type-badge";
 import { SignUpPrompt } from "@/modules/communities/ui/sign-up-prompt";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { deleteOwnPostAction } from "@/modules/moderation/actions";
+import { ReportButton } from "@/modules/moderation/ui/report-button";
 
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -49,6 +52,18 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           <h1 className="text-2xl font-semibold tracking-tight">{post.title}</h1>
           <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{post.body}</p>
           <AttachmentGallery images={post.images} alt={`Photo attached to ${post.title}`} />
+          {user ? (
+            <div className="flex items-center gap-3">
+              {user.handle === post.authorHandle ? (
+                <form action={deleteOwnPostAction}>
+                  <input type="hidden" name="postId" value={post.id} />
+                  <SubmitButton label="Delete post" variant="secondary" />
+                </form>
+              ) : (
+                <ReportButton targetType="post" targetId={post.id} />
+              )}
+            </div>
+          ) : null}
         </div>
       </article>
 
@@ -73,6 +88,11 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
                   alt={`Photo attached by ${comment.authorName}`}
                 />
               </div>
+              {user && user.handle !== comment.authorHandle ? (
+                <div className="mt-2">
+                  <ReportButton targetType="comment" targetId={comment.id} />
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

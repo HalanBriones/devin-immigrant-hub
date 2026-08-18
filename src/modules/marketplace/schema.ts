@@ -9,6 +9,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { users } from "@/modules/auth/schema";
 import { communities } from "@/modules/communities/schema";
 import { cities, provinces } from "@/modules/geo/schema";
 import { profiles } from "@/modules/profiles/schema";
@@ -41,6 +42,10 @@ export const listings = pgTable(
     }),
     contactEmail: text("contact_email"),
     contactPhone: text("contact_phone"),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedBy: uuid("removed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

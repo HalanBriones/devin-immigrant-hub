@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { imageUrl } from "@/lib/uploads";
 import type { PostType } from "@/modules/communities/post-types";
@@ -176,7 +176,7 @@ export async function listCommunityPosts(
     .from(posts)
     .innerJoin(profiles, eq(profiles.userId, posts.authorId))
     .innerJoin(communities, eq(communities.id, posts.communityId))
-    .where(eq(posts.communityId, communityId))
+    .where(and(eq(posts.communityId, communityId), isNull(posts.removedAt)))
     .orderBy(desc(posts.createdAt))
     .limit(50);
   return withImages(rows, "post");
@@ -195,9 +195,12 @@ export async function listFeedPosts(viewerId: string): Promise<PostSummary[]> {
     .innerJoin(profiles, eq(profiles.userId, posts.authorId))
     .innerJoin(communities, eq(communities.id, posts.communityId))
     .where(
-      inArray(
-        posts.communityId,
-        memberships.map((row) => row.communityId),
+      and(
+        inArray(
+          posts.communityId,
+          memberships.map((row) => row.communityId),
+        ),
+        isNull(posts.removedAt),
       ),
     )
     .orderBy(desc(posts.createdAt))
@@ -213,6 +216,7 @@ export async function listPublicPosts(
     .from(posts)
     .innerJoin(profiles, eq(profiles.userId, posts.authorId))
     .innerJoin(communities, eq(communities.id, posts.communityId))
+    .where(isNull(posts.removedAt))
     .orderBy(desc(posts.createdAt))
     .limit(30);
   return withImages(rows, "post");
@@ -227,7 +231,7 @@ export async function getPost(
     .from(posts)
     .innerJoin(profiles, eq(profiles.userId, posts.authorId))
     .innerJoin(communities, eq(communities.id, posts.communityId))
-    .where(eq(posts.id, id))
+    .where(and(eq(posts.id, id), isNull(posts.removedAt)))
     .limit(1);
   if (!row) return null;
   const [withImage] = await withImages([row], "post");
@@ -254,7 +258,7 @@ export async function listComments(postId: number): Promise<CommentView[]> {
     })
     .from(comments)
     .innerJoin(profiles, eq(profiles.userId, comments.authorId))
-    .where(eq(comments.postId, postId))
+    .where(and(eq(comments.postId, postId), isNull(comments.removedAt)))
     .orderBy(comments.createdAt);
   return withImages(rows, "comment");
 }
